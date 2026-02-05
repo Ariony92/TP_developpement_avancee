@@ -1,8 +1,9 @@
-package org.univ_paris8.iut.montreuil.qdev.tp2025.gr07.jeuquizz.dev_avancee.model;
+package tp_avancee_dev.tp_avancee.model;
 
 import java.sql.Timestamp;
 
 public class Annonce {
+
     private int id;
     private String title;
     private String description;
@@ -11,6 +12,15 @@ public class Annonce {
     private Timestamp date;
 
     public Annonce() {}
+
+    public Annonce(String title, String description, String adress, String mail, Timestamp date) {
+        this.title = title;
+        this.description = description;
+        this.adress = adress;
+        this.mail = mail;
+        this.date = date;
+    }
+
 
     public Annonce(int id, String title, String description, String adress, String mail, Timestamp date) {
         this.id = id;

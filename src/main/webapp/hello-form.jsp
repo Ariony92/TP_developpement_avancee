@@ -16,7 +16,7 @@
 <h1>Exercice 3</h1>
 
 <form method="post" action="hello-servlet">
-    <label for="nom">Khan</label>
+    <label for="nom">Votre Nom : </label>
     <input type="text" id="nom" name="nom" required>
     <button type="submit">Envoyer</button>
 </form>

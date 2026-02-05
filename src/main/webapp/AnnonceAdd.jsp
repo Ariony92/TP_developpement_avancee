@@ -12,6 +12,14 @@
     <title>Ajouter une annonce</title>
 </head>
 <body>
+<%
+    String error = (String) request.getAttribute("error");
+    if (error != null) {
+%>
+<p style="color:red;"><%= error %></p>
+<%
+    }
+%>
 
 <h1>Ajouter une annonce</h1>
 
@@ -19,9 +27,10 @@
     <p>Title : <input type="text" name="title" required></p>
     <p>Description : <textarea name="description" required></textarea></p>
     <p>Adress : <input type="text" name="adress" required></p>
-    <p>Mail : <input type="text" name="mail" required></p>
+    <p>Mail : <input type="email" name="mail" required></p>
     <button type="submit">Enregistrer</button>
 </form>
+<p><a href="index.jsp">Retour menu</a></p>
 </body>
 </html>
 
