@@ -13,9 +13,9 @@ import java.io.IOException;
 @WebServlet(name = "annonceUpdate", value = "/annonce-update")
 public class AnnonceUpdate extends HttpServlet {
 
-    private int getId(HttpServletRequest request) {
+    private long getId(HttpServletRequest request) {
         try {
-            return Integer.parseInt(request.getParameter("id"));
+            return Long.parseLong(request.getParameter("id"));
         } catch (Exception e) {
             return -1;
         }
@@ -25,7 +25,7 @@ public class AnnonceUpdate extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        int id = getId(request);
+        long id = getId(request);
         if (id <= 0) {
             response.sendRedirect("annonce-list");
             return;
@@ -54,7 +54,7 @@ public class AnnonceUpdate extends HttpServlet {
 
         request.setCharacterEncoding("UTF-8");
 
-        int id = getId(request);
+        long id = getId(request);
         String title = request.getParameter("title");
         String description = request.getParameter("description");
         String adress = request.getParameter("adress");

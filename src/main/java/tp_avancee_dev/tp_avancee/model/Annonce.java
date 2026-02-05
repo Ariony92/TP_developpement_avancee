@@ -1,28 +1,73 @@
 package tp_avancee_dev.tp_avancee.model;
 
-import java.sql.Timestamp;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.Instant;
+
+@Entity
+@Table(name = "annonce")
 
 public class Annonce {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    private int id;
+    @NotBlank
+    @Size(max = 64)
+    @Column(nullable = false, length = 64)
     private String title;
+
+    @NotBlank
+    @Size(max = 256)
+    @Column(nullable = false, length = 256)
     private String description;
+
+    @NotBlank
+    @Size(max = 64)
+    @Column(name = "address", nullable = false, length = 64)
     private String adress;
+
+    @NotBlank
+    @Email
+    @Size(max = 64)
+    @Column(nullable = false, length = 64)
     private String mail;
-    private Timestamp date;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private Instant date;
+
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private Status status = Status.DRAFT;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
 
     public Annonce() {}
 
-    public Annonce(String title, String description, String adress, String mail, Timestamp date) {
+    public Annonce(String title, String description, String adress, String mail) {
         this.title = title;
         this.description = description;
         this.adress = adress;
         this.mail = mail;
-        this.date = date;
     }
 
-
-    public Annonce(int id, String title, String description, String adress, String mail, Timestamp date) {
+    public Annonce(Long id, String title, String description, String adress, String mail, Instant date) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -31,8 +76,8 @@ public class Annonce {
         this.date = date;
     }
 
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
@@ -46,6 +91,15 @@ public class Annonce {
     public String getMail() { return mail; }
     public void setMail(String mail) { this.mail = mail; }
 
-    public Timestamp getDate() { return date; }
-    public void setDate(Timestamp date) { this.date = date; }
+    public Instant getDate() { return date; }
+    public void setDate(Instant date) { this.date = date; }
+
+    public Status getStatus() { return status; }
+    public void setStatus(Status status) { this.status = status; }
+
+    public User getAuthor() { return author; }
+    public void setAuthor(User author) { this.author = author; }
+
+    public Category getCategory() { return category; }
+    public void setCategory(Category category) { this.category = category; }
 }
