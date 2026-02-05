@@ -59,7 +59,7 @@ public class AnnonceAdd extends HttpServlet {
             throw new ServletException(e);
         }
 
-        response.sendRedirect("index.jsp");
+        response.sendRedirect("annonce-list");
     }
 }
 
