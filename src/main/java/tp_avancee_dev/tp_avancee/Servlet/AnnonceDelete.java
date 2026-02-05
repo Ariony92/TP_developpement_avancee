@@ -23,7 +23,7 @@ public class AnnonceDelete extends HttpServlet {
         }
 
         try {
-            int id = Integer.parseInt(idStr);
+            long id = Long.parseLong(idStr);
 
             AnnonceDAO dao = new AnnonceDAO();
             dao.delete(id);

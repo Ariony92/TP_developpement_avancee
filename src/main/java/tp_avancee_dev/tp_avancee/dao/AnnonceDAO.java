@@ -10,23 +10,23 @@ import java.util.List;
 public class AnnonceDAO extends DAO<Annonce> {
 
     @Override
-    public Annonce find(int id) throws Exception {
+    public Annonce find(long id) throws Exception {
         Connection c = ConnectionDB.getInstance();
 
-        String sql = "SELECT id, title, description, adress, mail, date FROM annonce WHERE id = ?";
+        String sql = "SELECT id, title, description, address, mail, date FROM annonce WHERE id = ?";
 
         try (PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1, id);
+            ps.setLong(1, id);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return new Annonce(
-                            rs.getInt("id"),
+                            rs.getLong("id"),
                             rs.getString("title"),
                             rs.getString("description"),
-                            rs.getString("adress"),
+                            rs.getString("address"),
                             rs.getString("mail"),
-                            rs.getTimestamp("date")
+                            rs.getTimestamp("date").toInstant()
                     );
                 }
             }
@@ -39,7 +39,7 @@ public class AnnonceDAO extends DAO<Annonce> {
     public List<Annonce> findAll() throws Exception {
         Connection c = ConnectionDB.getInstance();
 
-        String sql = "SELECT id, title, description, adress, mail, date FROM annonce ORDER BY date DESC";
+        String sql = "SELECT id, title, description, address, mail, date FROM annonce ORDER BY date DESC";
 
         List<Annonce> list = new ArrayList<>();
 
@@ -48,12 +48,12 @@ public class AnnonceDAO extends DAO<Annonce> {
 
             while (rs.next()) {
                 list.add(new Annonce(
-                        rs.getInt("id"),
+                        rs.getLong("id"),
                         rs.getString("title"),
                         rs.getString("description"),
-                        rs.getString("adress"),
+                        rs.getString("address"),
                         rs.getString("mail"),
-                        rs.getTimestamp("date")
+                        rs.getTimestamp("date").toInstant()
                 ));
             }
         }
@@ -65,7 +65,7 @@ public class AnnonceDAO extends DAO<Annonce> {
     public boolean create(Annonce a) throws Exception {
         Connection c = ConnectionDB.getInstance();
 
-        String sql = "INSERT INTO annonce(title, description, adress, mail, date) VALUES (?,?,?,?,now())";
+        String sql = "INSERT INTO annonce(title, description, address, mail, date) VALUES (?,?,?,?,now())";
 
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, a.getTitle());
@@ -81,27 +81,27 @@ public class AnnonceDAO extends DAO<Annonce> {
     public boolean update(Annonce a) throws Exception {
         Connection c = ConnectionDB.getInstance();
 
-        String sql = "UPDATE annonce SET title=?, description=?, adress=?, mail=? WHERE id=?";
+        String sql = "UPDATE annonce SET title=?, description=?, address=?, mail=? WHERE id=?";
 
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, a.getTitle());
             ps.setString(2, a.getDescription());
             ps.setString(3, a.getAdress());
             ps.setString(4, a.getMail());
-            ps.setInt(5, a.getId());
+            ps.setLong(5, a.getId());
 
             return ps.executeUpdate() == 1;
         }
     }
 
     @Override
-    public boolean delete(int id) throws Exception {
+    public boolean delete(long id) throws Exception {
         Connection c = ConnectionDB.getInstance();
 
         String sql = "DELETE FROM annonce WHERE id=?";
 
         try (PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1, id);
+            ps.setLong(1, id);
             return ps.executeUpdate() == 1;
         }
     }

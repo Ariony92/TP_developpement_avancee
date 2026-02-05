@@ -1,7 +1,6 @@
 package tp_avancee_dev.tp_avancee.Servlet;
 
 import java.io.IOException;
-import java.sql.Timestamp;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -43,7 +42,7 @@ public class AnnonceAdd extends HttpServlet {
         }
 
 
-        Annonce annonce = new Annonce(title, description, adress, mail, new Timestamp(System.currentTimeMillis()));
+        Annonce annonce = new Annonce(title, description, adress, mail);
 
 
         try {
@@ -62,4 +61,3 @@ public class AnnonceAdd extends HttpServlet {
         response.sendRedirect("annonce-list");
     }
 }
-
