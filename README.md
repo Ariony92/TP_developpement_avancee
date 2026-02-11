@@ -135,7 +135,7 @@ id BIGSERIAL PRIMARY KEY,
 username VARCHAR(64) NOT NULL UNIQUE,
 email VARCHAR(128) NOT NULL UNIQUE,
 password VARCHAR(255) NOT NULL,
-createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- =========================
@@ -155,7 +155,7 @@ CREATE TABLE annonce (
 id BIGSERIAL PRIMARY KEY,
 title VARCHAR(64) NOT NULL,
 description VARCHAR(256) NOT NULL,
-adress VARCHAR(64) NOT NULL,
+address VARCHAR(64) NOT NULL,
 mail VARCHAR(64) NOT NULL,
 date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 status VARCHAR(20) NOT NULL,
@@ -188,7 +188,7 @@ VALUES
 -- INSERT ANNONCES
 -- =========================
 
-INSERT INTO annonce (title, description, adress, mail, status, author_id, category_id)
+INSERT INTO annonce (title, description, address, mail, status, author_id, category_id)
 VALUES
 ('Velo route', 'Super velo carbone', 'Lille', 'velo@test.com', 'PUBLISHED', 2, 1),
 ('Canape 3 places', 'Bon etat', 'Paris', 'canape@test.com', 'DRAFT', 2, 2),
