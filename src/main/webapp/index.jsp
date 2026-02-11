@@ -2,16 +2,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>JSP/TP1- Hello World</title>
+    <title>MasterAnnonce - Menu</title>
 </head>
 <body>
-<h1><%= "Bienvenue sur le TP1 !" %>
-</h1>
-<br/>
-<li><a href="hello-servlet?mode=hello">Hello World (Exercice 2)</a></li>
-<li><a href="hello-servlet?mode=form">Exercice 3 - Nom</a></li>
-<li><a href="annonce-add">Exercice 5 - Ajouter une annonce</a></li>
-<li><a href="annonce-list">Liste des annonces</a></li>
-</li>
+<h1>Bienvenue ${sessionScope.username}</h1>
+
+<ul>
+    <li><a href="annonce-list">Liste paginée des annonces</a></li>
+    <li><a href="annonce-add">Créer une annonce</a></li>
+</ul>
+
+<form method="post" action="logout">
+    <button type="submit">Se déconnecter</button>
+</form>
 </body>
 </html>

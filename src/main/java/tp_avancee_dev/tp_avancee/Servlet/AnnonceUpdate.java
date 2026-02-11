@@ -5,47 +5,40 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import tp_avancee_dev.tp_avancee.dao.AnnonceDAO;
 import tp_avancee_dev.tp_avancee.model.Annonce;
+import tp_avancee_dev.tp_avancee.model.Category;
+import tp_avancee_dev.tp_avancee.service.AnnonceService;
+import tp_avancee_dev.tp_avancee.service.CategoryService;
 
 import java.io.IOException;
+import java.util.List;
+
 
 @WebServlet(name = "annonceUpdate", value = "/annonce-update")
 public class AnnonceUpdate extends HttpServlet {
 
-    private long getId(HttpServletRequest request) {
-        try {
-            return Long.parseLong(request.getParameter("id"));
-        } catch (Exception e) {
-            return -1;
-        }
-    }
+    private final AnnonceService annonceService = new AnnonceService();
+    private final CategoryService categoryService = new CategoryService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        long id = getId(request);
-        if (id <= 0) {
+        Long id = parseLong(request.getParameter("id"));
+        if (id == null) {
             response.sendRedirect("annonce-list");
             return;
         }
 
-        try {
-            AnnonceDAO dao = new AnnonceDAO();
-            Annonce annonce = dao.find(id);
-
-            if (annonce == null) {
-                response.sendRedirect("annonce-list");
-                return;
-            }
-
-            request.setAttribute("annonce", annonce);
-            request.getRequestDispatcher("/AnnonceUpdate.jsp").forward(request, response);
-
-        } catch (Exception e) {
-            throw new ServletException(e);
+        Annonce annonce = annonceService.getAnnonceById(id);
+        if (annonce == null) {
+            response.sendRedirect("annonce-list");
+            return;
         }
+        List<Category> categories = categoryService.listCategories();
+        request.setAttribute("annonce", annonce);
+        request.setAttribute("categories", categories);
+        request.getRequestDispatcher("/AnnonceUpdate.jsp").forward(request, response);
     }
 
     @Override
@@ -54,43 +47,47 @@ public class AnnonceUpdate extends HttpServlet {
 
         request.setCharacterEncoding("UTF-8");
 
-        long id = getId(request);
+        Long id = parseLong(request.getParameter("id"));
         String title = request.getParameter("title");
         String description = request.getParameter("description");
         String adress = request.getParameter("adress");
         String mail = request.getParameter("mail");
+        Long categoryId = parseLong(request.getParameter("categoryId"));
 
-        if (id <= 0
+        if (id == null
                 || title == null || title.isBlank()
                 || description == null || description.isBlank()
                 || adress == null || adress.isBlank()
-                || mail == null || mail.isBlank()) {
+                || mail == null || mail.isBlank()
+                || categoryId == null) {
 
             request.setAttribute("error", "Tous les champs sont obligatoires");
 
-            try {
-                AnnonceDAO dao = new AnnonceDAO();
-                request.setAttribute("annonce", dao.find(id));
-            } catch (Exception ignored) {}
 
+            request.setAttribute("annonce", annonceService.getAnnonceById(id));
+            request.setAttribute("categories", categoryService.listCategories());
             request.getRequestDispatcher("/AnnonceUpdate.jsp").forward(request, response);
             return;
         }
 
         try {
-            Annonce annonce = new Annonce();
-            annonce.setId(id);
-            annonce.setTitle(title);
-            annonce.setDescription(description);
-            annonce.setAdress(adress);
-            annonce.setMail(mail);
-
-            new AnnonceDAO().update(annonce);
-
+            annonceService.updateAnnonce(id, title, description, adress, mail, categoryId);
             response.sendRedirect("annonce-list");
-
         } catch (Exception e) {
-            throw new ServletException(e);
+            request.setAttribute("error", e.getMessage());
+            request.setAttribute("annonce", annonceService.getAnnonceById(id));
+            request.setAttribute("categories", categoryService.listCategories());
+            request.getRequestDispatcher("/AnnonceUpdate.jsp").forward(request, response);
         }
     }
+
+    private Long parseLong(String value) {
+        try {
+            if (value == null || value.isBlank()) return null;
+            return Long.parseLong(value);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
 }
