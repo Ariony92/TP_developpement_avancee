@@ -124,10 +124,86 @@ src/test/java/
 
 ## Scripts SQL
 
-Aucun script SQL manuel n'est nécessaire.
-
 La base PostgreSQL est créée via Docker.
-Les tables sont générées automatiquement par Hibernate (ddl-auto=update).
+
+-- =========================
+-- TABLE USERS
+-- =========================
+
+CREATE TABLE users (
+id BIGSERIAL PRIMARY KEY,
+username VARCHAR(64) NOT NULL UNIQUE,
+email VARCHAR(128) NOT NULL UNIQUE,
+password VARCHAR(255) NOT NULL,
+createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =========================
+-- TABLE CATEGORY
+-- =========================
+
+CREATE TABLE category (
+id BIGSERIAL PRIMARY KEY,
+label VARCHAR(64) NOT NULL
+);
+
+-- =========================
+-- TABLE ANNONCE
+-- =========================
+
+CREATE TABLE annonce (
+id BIGSERIAL PRIMARY KEY,
+title VARCHAR(64) NOT NULL,
+description VARCHAR(256) NOT NULL,
+adress VARCHAR(64) NOT NULL,
+mail VARCHAR(64) NOT NULL,
+date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+status VARCHAR(20) NOT NULL,
+author_id BIGINT NOT NULL,
+category_id BIGINT NOT NULL,
+CONSTRAINT fk_author FOREIGN KEY (author_id) REFERENCES users(id),
+CONSTRAINT fk_category FOREIGN KEY (category_id) REFERENCES category(id)
+);
+
+-- =========================
+-- INSERT USERS
+-- =========================
+
+INSERT INTO users (username, email, password)
+VALUES
+('admin', 'admin@test.com', 'admin'),
+('alice', 'alice@test.com', 'secret');
+
+-- =========================
+-- INSERT CATEGORIES
+-- =========================
+
+INSERT INTO category (label)
+VALUES
+('Sport'),
+('Maison'),
+('Informatique');
+
+-- =========================
+-- INSERT ANNONCES
+-- =========================
+
+INSERT INTO annonce (title, description, adress, mail, status, author_id, category_id)
+VALUES
+('Velo route', 'Super velo carbone', 'Lille', 'velo@test.com', 'PUBLISHED', 2, 1),
+('Canape 3 places', 'Bon etat', 'Paris', 'canape@test.com', 'DRAFT', 2, 2),
+('PC portable', '16Go RAM SSD', 'Lyon', 'pc@test.com', 'ARCHIVED', 1, 3);
+
+
+-- =========================
+-- DROP TABLES 
+-- =========================
+
+DROP TABLE IF EXISTS annonce CASCADE;
+DROP TABLE IF EXISTS category CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+(au cas où vous voudriez réinitialiser la base)
 
 ---
 
