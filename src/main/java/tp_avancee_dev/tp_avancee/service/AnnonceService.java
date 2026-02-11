@@ -15,7 +15,11 @@ public class AnnonceService {
     private final AnnonceRepository annonceRepository;
 
     public AnnonceService() {
-        this.annonceRepository = new AnnonceRepository();
+        this(new AnnonceRepository());
+    }
+
+    public AnnonceService(AnnonceRepository annonceRepository) {
+        this.annonceRepository = annonceRepository;
     }
 
     public Annonce getAnnonceById(Long id) {

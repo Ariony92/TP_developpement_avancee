@@ -15,13 +15,21 @@
 <body>
 <h1>Connexion</h1>
 
-<c:if test="${not empty error}">
-    <p style="color:red;">${error}</p>
+<c:if test="${not empty errors.global}">
+    <p style="color:red;">${errors.global}</p>
 </c:if>
 
 <form method="post" action="login">
-    <p>Login (username ou email) : <input type="text" name="login" required></p>
-    <p>Mot de passe : <input type="password" name="password" required></p>
+    <p>
+        Login (username ou email) :
+        <input type="text" name="login" value="${loginValue}" required>
+        <c:if test="${not empty errors.login}"><span style="color:red;"> ${errors.login}</span></c:if>
+    </p>
+    <p>
+        Mot de passe :
+        <input type="password" name="password" required>
+        <c:if test="${not empty errors.password}"><span style="color:red;"> ${errors.password}</span></c:if>
+    </p>
     <button type="submit">Se connecter</button>
 </form>
 

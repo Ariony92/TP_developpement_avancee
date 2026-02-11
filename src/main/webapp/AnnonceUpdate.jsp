@@ -14,33 +14,60 @@
     <title>Modifier annonce</title>
 </head>
 <body>
-<h1>Modifier annonce #${annonce.id}</h1>
-<c:if test="${not empty error}">
-    <p style="color:red;">${error}</p>
+<c:set var="currentId" value="${empty formId ? annonce.id : formId}"/>
+<c:set var="currentTitle" value="${empty titleValue ? annonce.title : titleValue}"/>
+<c:set var="currentDescription" value="${empty descriptionValue ? annonce.description : descriptionValue}"/>
+<c:set var="currentAdress" value="${empty adressValue ? annonce.adress : adressValue}"/>
+<c:set var="currentMail" value="${empty mailValue ? annonce.mail : mailValue}"/>
+<c:set var="currentCategoryId" value="${empty categoryIdValue ? annonce.category.id : categoryIdValue}"/>
+
+<h1>Modifier annonce #${currentId}</h1>
+
+<c:if test="${not empty errors.global}">
+    <p style="color:red;">${errors.global}</p>
 </c:if>
 
 <form method="post" action="annonce-update">
-    <input type="hidden" name="id" value="${annonce.id}">
+    <input type="hidden" name="id" value="${currentId}">
 
-    <p>Title : <input type="text" name="title" value="${annonce.title}" required></p>
-    <p>Description : <textarea name="description" required>${annonce.description}</textarea></p>
-    <p>Address : <input type="text" name="adress" value="${annonce.adress}" required></p>
-    <p>Mail : <input type="email" name="mail" value="${annonce.mail}" required></p>
+    <p>
+        Title :
+        <input type="text" name="title" value="${currentTitle}" required>
+        <c:if test="${not empty errors.title}"><span style="color:red;"> ${errors.title}</span></c:if>
+    </p>
 
+    <p>
+        Description :
+        <textarea name="description" required>${currentDescription}</textarea>
+        <c:if test="${not empty errors.description}"><span style="color:red;"> ${errors.description}</span></c:if>
+    </p>
+
+    <p>
+        Address :
+        <input type="text" name="adress" value="${currentAdress}" required>
+        <c:if test="${not empty errors.adress}"><span style="color:red;"> ${errors.adress}</span></c:if>
+    </p>
+
+    <p>
+        Mail :
+        <input type="email" name="mail" value="${currentMail}" required>
+        <c:if test="${not empty errors.mail}"><span style="color:red;"> ${errors.mail}</span></c:if>
+    </p>
     <p>
         Catégorie :
         <select name="categoryId" required>
             <c:forEach var="c" items="${categories}">
-                <option value="${c.id}" ${annonce.category.id == c.id ? 'selected' : ''}>${c.label}</option>
+                <option value="${c.id}" ${currentCategoryId == c.id ? 'selected' : ''}>${c.label}</option>
             </c:forEach>
         </select>
+        <c:if test="${not empty errors.categoryId}"><span style="color:red;"> ${errors.categoryId}</span></c:if>
     </p>
 
     <button type="submit">Enregistrer</button>
 </form>
 
 <p>
-    <a href="annonce-detail?id=${annonce.id}">Voir le détail</a> |
+    <a href="annonce-detail?id=${currentId}">Voir le détail</a> |
     <a href="annonce-list">Retour liste</a>
 </p>
 

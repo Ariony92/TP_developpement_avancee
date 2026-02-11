@@ -6,16 +6,21 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import tp_avancee_dev.tp_avancee.model.Category;
+
 import tp_avancee_dev.tp_avancee.service.AnnonceService;
 import tp_avancee_dev.tp_avancee.service.CategoryService;
-
+import java.util.LinkedHashMap;
 import java.io.IOException;
-import java.util.List;
+
+import java.util.Map;
 
 
 @WebServlet(name = "annonceAdd", value = "/annonce-add")
 public class AnnonceAdd extends HttpServlet {
+    private static final int TITLE_MAX = 64;
+    private static final int DESCRIPTION_MAX = 256;
+    private static final int ADDRESS_MAX = 64;
+    private static final int MAIL_MAX = 64;
 
     private final AnnonceService annonceService = new AnnonceService();
     private final CategoryService categoryService = new CategoryService();
@@ -23,8 +28,7 @@ public class AnnonceAdd extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        List<Category> categories = categoryService.listCategories();
-        request.setAttribute("categories", categories);
+        request.setAttribute("categories", categoryService.listCategories());
         request.getRequestDispatcher("/AnnonceAdd.jsp").forward(request, response);
     }
 
@@ -34,24 +38,19 @@ public class AnnonceAdd extends HttpServlet {
 
         request.setCharacterEncoding("UTF-8");
 
-        String title = request.getParameter("title");
-        String description = request.getParameter("description");
-        String adress = request.getParameter("adress");
-        String mail = request.getParameter("mail");
+        String title = normalize(request.getParameter("title"));
+        String description = normalize(request.getParameter("description"));
+        String adress = normalize(request.getParameter("adress"));
+        String mail = normalize(request.getParameter("mail"));
+        String categoryIdRaw = request.getParameter("categoryId");
+        Long categoryId = parseLong(categoryIdRaw);
 
-        Long categoryId = parseLong(request.getParameter("categoryId"));
         Object userIdObj = request.getSession().getAttribute("userId");
         Long userId = (userIdObj instanceof Long) ? (Long) userIdObj : null;
 
-        if (title == null || title.isBlank()
-                || description == null || description.isBlank()
-                || adress == null || adress.isBlank()
-                || mail == null || mail.isBlank()
-                || categoryId == null
-                || userId == null) {
-            request.setAttribute("error", "Tous les champs sont obligatoires");
-            request.setAttribute("categories", categoryService.listCategories());
-            request.getRequestDispatcher("/AnnonceAdd.jsp").forward(request, response);
+        Map<String, String> errors = validate(title, description, adress, mail, categoryId, userId);
+        if (!errors.isEmpty()) {
+            forwardWithErrors(request, response, errors, title, description, adress, mail, categoryIdRaw);
             return;
         }
 
@@ -59,10 +58,79 @@ public class AnnonceAdd extends HttpServlet {
             annonceService.createAnnonce(title, description, adress, mail, userId, categoryId);
             response.sendRedirect("annonce-list");
         } catch (Exception e) {
-            request.setAttribute("error", e.getMessage());
-            request.setAttribute("categories", categoryService.listCategories());
-            request.getRequestDispatcher("/AnnonceAdd.jsp").forward(request, response);
+            errors.put("global", e.getMessage());
+            forwardWithErrors(request, response, errors, title, description, adress, mail, categoryIdRaw);
         }
+    }
+    private void forwardWithErrors(HttpServletRequest request,
+                                   HttpServletResponse response,
+                                   Map<String, String> errors,
+                                   String title,
+                                   String description,
+                                   String adress,
+                                   String mail,
+                                   String categoryIdRaw) throws ServletException, IOException {
+        request.setAttribute("errors", errors);
+        request.setAttribute("titleValue", title == null ? "" : title);
+        request.setAttribute("descriptionValue", description == null ? "" : description);
+        request.setAttribute("adressValue", adress == null ? "" : adress);
+        request.setAttribute("mailValue", mail == null ? "" : mail);
+        request.setAttribute("categoryIdValue", categoryIdRaw == null ? "" : categoryIdRaw);
+        request.setAttribute("categories", categoryService.listCategories());
+        request.getRequestDispatcher("/AnnonceAdd.jsp").forward(request, response);
+    }
+
+    private Map<String, String> validate(String title,
+                                         String description,
+                                         String adress,
+                                         String mail,
+                                         Long categoryId,
+                                         Long userId) {
+        Map<String, String> errors = new LinkedHashMap<>();
+
+        if (isBlank(title)) {
+            errors.put("title", "Le titre est obligatoire.");
+        } else if (title.length() > TITLE_MAX) {
+            errors.put("title", "Le titre ne doit pas dépasser 64 caractères.");
+        }
+
+        if (isBlank(description)) {
+            errors.put("description", "La description est obligatoire.");
+        } else if (description.length() > DESCRIPTION_MAX) {
+            errors.put("description", "La description ne doit pas dépasser 256 caractères.");
+        }
+
+        if (isBlank(adress)) {
+            errors.put("adress", "L'adresse est obligatoire.");
+        } else if (adress.length() > ADDRESS_MAX) {
+            errors.put("adress", "L'adresse ne doit pas dépasser 64 caractères.");
+        }
+
+        if (isBlank(mail)) {
+            errors.put("mail", "Le mail est obligatoire.");
+        } else if (mail.length() > MAIL_MAX) {
+            errors.put("mail", "Le mail ne doit pas dépasser 64 caractères.");
+        } else if (!mail.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+            errors.put("mail", "Le format du mail est invalide.");
+        }
+
+        if (categoryId == null) {
+            errors.put("categoryId", "La catégorie est obligatoire.");
+        }
+
+        if (userId == null) {
+            errors.put("global", "Session invalide, reconnecte-toi.");
+        }
+
+        return errors;
+    }
+
+    private String normalize(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private Long parseLong(String value) {
