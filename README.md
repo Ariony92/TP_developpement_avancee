@@ -277,3 +277,27 @@ Une mauvaise configuration du filtre pouvait bloquer l’accès ou provoquer des
 # Solution
 Le filtre vérifie la présence de userId en session et redirige vers /login si nécessaire. Certaines routes sont explicitement autorisées
 
+
+
+
+
+
+# Remarques 
+Sur l'ancienne couche JDBC dans les premières versions du projet, une implémentation basée sur JDBC pur était utilisée via les classes :
+
+ConnectionDB
+AnnonceDAO
+
+Ces classes permettaient de gérer manuellement :
+-La connexion à la base de données
+-Les requêtes SQL
+-Les transactions
+
+Cependant, à partir de l’exercice 3 le projet a été entièrement migré vers JPA / Hibernate avec :
+
+-EntityManager
+-Des Repository
+-Des Service transactionnels
+
+Les fichiers suivants ne sont plus utilisés ConnectionDB & AnnonceDAO donc on peut les supprimés
+
