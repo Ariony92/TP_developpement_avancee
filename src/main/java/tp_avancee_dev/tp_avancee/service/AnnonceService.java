@@ -1,6 +1,7 @@
 package tp_avancee_dev.tp_avancee.service;
 
 import jakarta.persistence.EntityManager;
+import tp_avancee_dev.tp_avancee.api.exceptions.BusinessConflictException;
 import tp_avancee_dev.tp_avancee.db.EntityManagerUtil;
 import tp_avancee_dev.tp_avancee.model.Annonce;
 import tp_avancee_dev.tp_avancee.model.Category;
@@ -167,6 +168,13 @@ public class AnnonceService {
         }
     }
 
+    public Annonce changeStatusTo(Long annonceId, Status newStatus) {
+        if (newStatus == null) {
+            throw new IllegalArgumentException("Le statut est obligatoire");
+        }
+        return changeStatus(annonceId, newStatus);
+    }
+
     private Annonce changeStatus(Long annonceId, Status newStatus) {
         EntityManager em = EntityManagerUtil.createEntityManager();
         try {
@@ -176,6 +184,13 @@ public class AnnonceService {
             if (annonce == null) {
                 throw new IllegalArgumentException("Annonce introuvable : id=" + annonceId);
             }
+            if (annonce.getStatus() == newStatus) {
+                throw new BusinessConflictException("Le statut est déjà " + newStatus);
+            }
+            if (annonce.getStatus() == Status.ARCHIVED && newStatus == Status.PUBLISHED) {
+                throw new BusinessConflictException("Conflit métier: une annonce ARCHIVED ne peut pas repasser en PUBLISHED");
+            }
+
 
             annonce.setStatus(newStatus);
             Annonce updated = annonceRepository.update(em, annonce);
