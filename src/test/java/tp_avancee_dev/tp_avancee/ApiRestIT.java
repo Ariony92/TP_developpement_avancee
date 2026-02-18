@@ -82,6 +82,7 @@ class ApiRestIT extends JerseyTest {
     }
 
 
+    @Test
     void login_shouldReturnBearerTokenPayload() {
         Response response = target("login")
                 .request(MediaType.APPLICATION_JSON_TYPE)

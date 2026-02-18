@@ -30,7 +30,7 @@ class ApiErrorMappersUnitTest {
         assertEquals(401, response.getStatus());
         ApiErrorResponse payload = (ApiErrorResponse) response.getEntity();
         assertEquals("UNAUTHORIZED", payload.getError());
-        assertEquals("Token manquant", payload.getMessages().get(0));
+        assertEquals("HTTP 401 Unauthorized", payload.getMessages().get(0));
     }
 
     @Test

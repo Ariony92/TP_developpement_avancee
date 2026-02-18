@@ -22,7 +22,7 @@ import static org.mockito.Mockito.*;
 class AnnonceServiceTest {
 
     @Test
-    void publishAnnonce_shouldUpdateStatusAndCommitTransaction() {
+    void changeStatusTo_shouldUpdateStatusAndCommitTransaction_whenRequesterIsAuthor() {
         AnnonceRepository repository = mock(AnnonceRepository.class);
         EntityManager em = mock(EntityManager.class);
         EntityTransaction tx = mock(EntityTransaction.class);
@@ -30,6 +30,9 @@ class AnnonceServiceTest {
         Annonce annonce = new Annonce();
         annonce.setId(10L);
         annonce.setStatus(Status.DRAFT);
+        User author = new User();
+        author.setId(99L);
+        annonce.setAuthor(author);
 
         when(em.getTransaction()).thenReturn(tx);
         when(repository.findById(em, 10L)).thenReturn(annonce);
@@ -40,7 +43,7 @@ class AnnonceServiceTest {
         try (MockedStatic<EntityManagerUtil> mockedUtil = mockStatic(EntityManagerUtil.class)) {
             mockedUtil.when(EntityManagerUtil::createEntityManager).thenReturn(em);
 
-            Annonce result = service.publishAnnonce(10L);
+            Annonce result = service.changeStatusTo(10L, Status.PUBLISHED, 99L);
 
             assertEquals(Status.PUBLISHED, result.getStatus());
             verify(tx).begin();

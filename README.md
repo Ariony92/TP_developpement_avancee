@@ -1,279 +1,202 @@
-# TP Dev Avancée — JPA/Hibernate)
+# TP Développement Avancé — Backend REST Java (JAX-RS / JPA / JAAS)
 
+## 1) Objectif du projet
 
+Ce projet implémente une API REST de gestion d'annonces avec :
 
+- exposition HTTP JSON via **JAX-RS (Jersey)** ;
+- persistance via **JPA / Hibernate** ;
+- sécurité **stateless** avec **JAAS + Bearer token** ;
+- gestion centralisée des erreurs ;
+- tests unitaires et d'intégration.
+
+L'application respecte une architecture en couches et ne dépend pas de Spring.
 
 ---
 
-## 1) Architecture de l’application
-
-L’application suit une architecture en couches :
+## 2) Architecture
 
 ```text
-JSP (vue)
-   ↑
-Servlets (contrôleurs HTTP)
-   ↑
+Client (Postman / front)
+        ↓ HTTP JSON
+API REST (JAX-RS Resources + Filter)
+        ↓
 Services (règles métier + transactions)
-   ↑
-Repositories JPA (accès données)
-   ↑
+        ↓
+Repositories JPA (accès DB)
+        ↓
 Entités JPA (User / Category / Annonce)
-   ↑
-PostgreSQL (prod) / H2 (tests)
+        ↓
+PostgreSQL (runtime) / H2 (tests)
 ```
 
-### 2.1 Couche Web (Servlets + JSP)
-- Les **Servlets** reçoivent les requêtes HTTP, valident les paramètres, appellent les services et choisissent la vue JSP.
-- Les **JSP** affichent les données, les messages d’erreur, et les valeurs en cas d’erreur de formulaire
-- Le **AuthFilter** protège les routes `annonce-*` et `index.jsp` via la session (`userId`).
+## 2.1 Couche API (JAX-RS)
+ApiResource : endpoints de base (helloWorld, params, simulation d'erreurs, openapi).
 
-### 2.2 Couche Service
-- Centralise les règles métier de l’annonce (création, édition, publication, archivage, suppression, recherche).
-- Gère les **transactions JPA** (`begin/commit/rollback`) dans cette couche.
-- Les Servlets ne manipulent pas de transaction directement
+AuthResource : endpoint /api/login.
 
-### 2.3 Couche Repository
-- Utilise JPA/JPQL pour faire le CRUD, recherche, pagination et filtres.
-  (dossier Repository)
+AnnonceResource : CRUD REST + patch statut.
 
-### 2.4 Couche Modèle (entités)
-- `User`, `Category`, `Annonce`, `Status`.
-- Relations :
-    - `Annonce` → `User` (ManyToOne)
-    - `Annonce` → `Category` (ManyToOne)
-    - Inverses en `OneToMany` dans `User` et `Category`
-- Validation Bean Validation sur les champs
+BearerAuthFilter : contrôle du token sur endpoints protégés (@Secured).
 
-### 2.5 Configuration persistence
-- **Production** : `src/main/resources/META-INF/persistence.xml` (PostgreSQL)
+## 2.2 Couche Service
+AnnonceService : logique métier + transactions (begin/commit/rollback).
 
----
+AuthService : vérification des identifiants.
 
-## 3) Détail des composants principaux
+ApiTokenService : génération/validation des tokens mémoire.
 
-### 3.1 Authentification
-- `LoginServlet` : login/password, création session, redirection liste.
-- `LogoutServlet` : invalidation session.
-- `AuthService` : requête utilisateur par username ou email + password.
-- `AuthFilter` : redirige vers `/login` si non authentifié.
+## 2.3 Couche Repository
+AnnonceRepository, UserRepository, CategoryRepository.
 
-### 3.2 Gestion des annonces
-- `AnnonceList` : pagination, recherche mot-clé, filtre catégorie/statut.
-- `AnnonceAdd` : formulaire + validation serveur + création annonce.
-- `AnnonceUpdate` : formulaire édition + validation serveur + mise à jour.
-- `AnnonceDetail` : affichage d’une annonce avec auteur/catégorie.
-- `AnnonceStatus` : publish/archive selon état.
-- `AnnonceDelete` : suppression.
+Requêtes JPA/JPQL (CRUD, pagination, recherche, filtres).
 
-### 3.3 Validation & gestion des erreurs
-- Validation côté serveur dans `AnnonceAdd`, `AnnonceUpdate`, `LoginServlet`.
-- Messages d’erreur globaux + par champ passés aux JSP.
-- Valeurs de formulaire conservées si erreur.
+## 2.4 Sécurité
+JAAS login/password : DbLoginModule.
 
----
+JAAS token : BearerTokenLoginModule.
 
-## 4) Lancer le projet
+Principals : UserPrincipal, RolePrincipal.
 
-### Prérequis
-- Java 11+
-- Maven
-- PostgreSQL (base de données que vous créez)
+Configuration : src/main/resources/jaas.conf.
 
-### Commandes utiles
-```bash
-mvn clean test
+## 2.5 Validation et erreurs
+Bean Validation sur DTO (@NotBlank, @NotNull, @Email, ...).
+
+@Valid dans les ressources REST.
+
+Mappers d'erreurs JSON normalisés (ApiErrorResponse).
+
+# 3) Endpoints principaux
+Auth
+POST /api/login : authentification, retourne un Bearer token.
+
+API de base
+GET /api/helloWorld
+
+GET /api/params?name=...&age=...
+
+GET /api/params/{id}
+
+GET /api/errors/{code}
+
+GET /api/openapi
+
+Annonces (protégés)
+GET /api/annonces
+
+GET /api/annonces/{id}
+
+POST /api/annonces
+
+PUT /api/annonces/{id}
+
+DELETE /api/annonces/{id}
+
+PATCH /api/annonces/{id}/status
+
+# 4) Règles métier implémentées
+Seul l'auteur (ou un admin) peut modifier/supprimer une annonce.
+
+Une annonce PUBLISHED ne peut plus être modifiée.
+
+Une annonce doit être ARCHIVED avant suppression.
+
+Gestion de concurrence optimiste via @Version.
+
+# 5) Prérequis
+Java 11+
+
+Maven
+
+PostgreSQL en local
+
+Configurer la base côté runtime dans :
+
+src/main/resources/META-INF/persistence.xml
+
+# 6) Lancer le projet
+6.1 Build
+mvn clean package
+6.2 Lancer l'API (Tomcat Maven)
 mvn tomcat7:run
-```
+Base URL locale :
 
-- Application : `http://localhost:8080/tp_avancee`
+http://localhost:8080/tp_avancee/api
 
----
+# 7) Lancer les tests
+Tous les tests unitaires actifs
+mvn test
+Vérification Maven complète
+mvn verify
+Profils disponibles
+mvn -Punit-tests test
+mvn -Pintegration-tests verify
 
-## 5) Lancer les tests
+# 8) Organisation des tests
+src/test/java/tp_avancee_dev/tp_avancee/
+  - ApiErrorMappersUnitTest.java
+  - DbLoginModuleTest.java
+  - BearerTokenLoginModuleTest.java
+  - AnnonceServiceTest.java
+  - ApiRestIT.java
+  - AnnonceRepositoryIntegrationTest.java
+  - UserRepositoryIntegrationTest.java
+  - CategoryRepositoryIntegrationTest.java
+  - AnnonceServiceBusinessIntegrationTest.java
 
-```bash
-mvn -q test
-```
+src/test/resources/
+  META-INF/persistence.xml
+  sql/test-dataset.sql
 
-
----
-
-## 6) Organisation des tests
-
-```text
-src/test/java/
-  tp_avancee_dev/tp_avancee/repository/
-    - AnnonceRepositoryIntegrationTest.java
-    - UserRepositoryIntegrationTest.java
-    - CategoryRepositoryIntegrationTest.java
-
-  tp_avancee_dev/tp_avancee/service/
-    - AnnonceServiceTest.java
-    - AnnonceServiceBusinessIntegrationTest.java
-
-  tp_avancee_dev/tp_avancee/Servlet/
-    - LoginServletTest.java
-    - AnnonceAddServletTest.java
-
-  tp_avancee_dev/tp_avancee/filter/
-    - AuthFilterTest.java
-```
-
----
-
-## Scripts SQL
-
-La base PostgreSQL est créée via Docker.
-
--- =========================
--- TABLE USERS
--- =========================
-
-CREATE TABLE users (
-id BIGSERIAL PRIMARY KEY,
-username VARCHAR(64) NOT NULL UNIQUE,
-email VARCHAR(128) NOT NULL UNIQUE,
-password VARCHAR(255) NOT NULL,
-created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- =========================
--- TABLE CATEGORY
--- =========================
-
-CREATE TABLE category (
-id BIGSERIAL PRIMARY KEY,
-label VARCHAR(64) NOT NULL
-);
-
--- =========================
--- TABLE ANNONCE
--- =========================
-
-CREATE TABLE annonce (
-id BIGSERIAL PRIMARY KEY,
-title VARCHAR(64) NOT NULL,
-description VARCHAR(256) NOT NULL,
-address VARCHAR(64) NOT NULL,
-mail VARCHAR(64) NOT NULL,
-date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-status VARCHAR(20) NOT NULL,
-author_id BIGINT NOT NULL,
-category_id BIGINT NOT NULL,
-CONSTRAINT fk_author FOREIGN KEY (author_id) REFERENCES users(id),
-CONSTRAINT fk_category FOREIGN KEY (category_id) REFERENCES category(id)
-);
-
--- =========================
--- INSERT USERS
--- =========================
-
-INSERT INTO users (username, email, password)
-VALUES
-('admin', 'admin@test.com', 'admin'),
-('alice', 'alice@test.com', 'secret');
-
--- =========================
--- INSERT CATEGORIES
--- =========================
-
-INSERT INTO category (label)
-VALUES
-('Sport'),
-('Maison'),
-('Informatique');
-
--- =========================
--- INSERT ANNONCES
--- =========================
-
-INSERT INTO annonce (title, description, address, mail, status, author_id, category_id)
-VALUES
-('Velo route', 'Super velo carbone', 'Lille', 'velo@test.com', 'PUBLISHED', 2, 1),
-('Canape 3 places', 'Bon etat', 'Paris', 'canape@test.com', 'DRAFT', 2, 2),
-('PC portable', '16Go RAM SSD', 'Lyon', 'pc@test.com', 'ARCHIVED', 1, 3);
+# 9)Problèmes rencontrés et solutions apportées
+9.1 Transactions placées au mauvais niveau
+Problème : les transactions étaient initialement gérées trop bas dans la couche d'accès aux données, ce qui mélangeait responsabilités techniques et métier.
 
 
--- =========================
--- DROP TABLES 
--- =========================
+Solution : transactions déplacées dans la couche Service uniquement, les repositories reçoivent un EntityManager sans ouvrir/fermer de transaction.
 
-DROP TABLE IF EXISTS annonce CASCADE;
-DROP TABLE IF EXISTS category CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-
-(au cas où vous voudriez réinitialiser la base)
-
----
-
-#  Problèmes rencontrés et solutions apportées
+9.2 Erreurs Lazy Loading au moment du mapping DTO
+Problème : certaines lectures sur author/category déclenchaient des erreurs après fermeture de l'EntityManager.
 
 
-- La migration de JDBC vers JPA
-- La gestion des transactions
-- Les relations entre entités (Lazy Loading)
-- La validation des formulaires
-- La gestion des sessions et filtres
+
+Solution : ajout d'une méthode repository dédiée avec JOIN FETCH pour charger explicitement les relations nécessaires au détail.
+
+9.3 Endpoint protégé qui répondait 401 malgré token valide
+Problème : le filtre lisait le header Authorization mais le contexte de sécurité n'était pas systématiquement propagé.
 
 
-# Exercice 4 – Mauvaise gestion des transactions
+Solution : reconstruction complète du Subject via JAAS token + injection explicite du SecurityContext dans la requête.
 
-## Problème
-
-Au départ les transactions (begin, commit, rollback) étaient placées dans les classes Repository
-
-L’architecture demandée:
-
-- Les **Servlets** ne gèrent pas les transactions
-- Les **Repositories** ne gèrent pas les transactions
-- Les **Services** gèrent les transactions
-
-Sinon :
-- Mauvaise séparation des responsabilités
-- Architecture non conforme
+9.4 Mauvais format de payload de login
+Problème : des tests envoyaient login alors que l'API traitait username, ce qui créait des erreurs de validation.
 
 
-## Solution
+Solution : alignement DTO + alias JSON (@JsonAlias("login")) pour accepter les deux notations et fiabiliser les tests.
 
-- Suppression des transactions dans les Repository
-- Passage de `EntityManager` en paramètre des méthodes Repository
-- Gestion des transactions uniquement dans `AnnonceService`
-
----
-
-# Problème de Lazy Loading (relations JPA)
-
-## Problème
-
-Lors de l’affichage du détail d’une annonce, une erreur pouvait apparaître en accédant à annonce.author.username ou annonce.category.label.
+9.5 Chaîne de tests cassée après refactor REST
+Problème : des tests historiques Servlet/JSP ne correspondaient plus à l'architecture REST et empêchaient mvn test.
 
 
-Les relations JPA sont en mode LAZY par défaut Si l’EntityManager est fermé, les données liées ne peuvent plus être chargées.
+Solution : nettoyage des tests obsolètes, recentrage sur les tests API/Service/Sécurité, et déplacement des ressources de test dans src/test/resources.
 
-## Solution
-
-Une méthode spécifique avec JOIN FETCH a été créée pour charger les relations (author, category) avant de fermer l’EntityManager. Cela évite les erreurs au moment de l’affichage.
-
-
----
-
-# Erreur avec parseLong dans les Servlets
-
-## Problème
-Une méthode parseLong() appelait elle-même parseLong() ce qui provoquait une récursion infinie (StackOverflowError).
-
-## Solution
-Un appel explicite Long.parseLong(value) est utilisé avec une gestion d’erreur sécurisée
+9.6 Fichier de persistence de test non détecté
+Problème : le fichier de persistence de test n'était pas au chemin Maven standard.
 
 
----
+Solution : placement de persistence.xml dans src/test/resources/META-INF et dataset SQL dans src/test/resources/sql.
 
-## Configuration du filtre d’authentification
+9.7 Gestion des conflits métier incomplète
+Problème : certaines transitions de statut étaient trop permissives.
 
-# Problème
-Une mauvaise configuration du filtre pouvait bloquer l’accès ou provoquer des redirections incorrectes et empêcher l’accès à la page de connexion ou créer une boucle de redirection
 
-# Solution
-Le filtre vérifie la présence de userId en session et redirige vers /login si nécessaire. Certaines routes sont explicitement autorisées
+Solution : ajout de contrôles métier explicites dans AnnonceService avec exceptions métier mappées en HTTP 409.
+
+# 10) Documentation API
+Spécification OpenAPI : src/main/resources/openapi.yaml
+
+Exposition brute : GET /api/openapi
+
+Page de consultation : src/main/webapp/swagger.html
 
