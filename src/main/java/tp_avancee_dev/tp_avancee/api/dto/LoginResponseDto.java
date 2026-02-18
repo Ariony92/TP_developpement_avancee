@@ -1,10 +1,28 @@
 package tp_avancee_dev.tp_avancee.api.dto;
 
 public class LoginResponseDto {
+    private String token;
+    private long expiresIn;
     private String tokenType;
     private String accessToken;
     private Long userId;
     private String username;
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public long getExpiresIn() {
+        return expiresIn;
+    }
+
+    public void setExpiresIn(long expiresIn) {
+        this.expiresIn = expiresIn;
+    }
 
     public String getTokenType() {
         return tokenType;

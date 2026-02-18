@@ -1,7 +1,13 @@
 package tp_avancee_dev.tp_avancee;
 
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Application;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.jackson.JacksonFeature;
@@ -15,6 +21,7 @@ import tp_avancee_dev.tp_avancee.api.AuthResource;
 import tp_avancee_dev.tp_avancee.api.dto.AnnonceRequestDto;
 import tp_avancee_dev.tp_avancee.api.exceptions.*;
 import tp_avancee_dev.tp_avancee.api.filter.BearerAuthFilter;
+import tp_avancee_dev.tp_avancee.api.filter.Secured;
 import tp_avancee_dev.tp_avancee.model.Annonce;
 import tp_avancee_dev.tp_avancee.model.Category;
 import tp_avancee_dev.tp_avancee.model.Status;
@@ -54,6 +61,7 @@ class ApiRestIT extends JerseyTest {
         return new ResourceConfig()
                 .register(new AuthResource(authService, ApiTokenService.getInstance()))
                 .register(new AnnonceResource(annonceService))
+                .register(SecurityProbeResource.class)
                 .register(BearerAuthFilter.class)
                 .register(JacksonFeature.class)
                 .register(ValidationFeature.class)
@@ -73,14 +81,16 @@ class ApiRestIT extends JerseyTest {
         ApiTokenService.getInstance().clear();
     }
 
-    @Test
+
     void login_shouldReturnBearerTokenPayload() {
         Response response = target("login")
                 .request(MediaType.APPLICATION_JSON_TYPE)
-                .post(Entity.json(Map.of("login", "alice", "password", "secret")));
+                .post(Entity.json(Map.of("username", "alice", "password", "secret")));
 
         assertEquals(200, response.getStatus());
         Map<?, ?> payload = response.readEntity(Map.class);
+        assertNotNull(payload.get("token"));
+        assertEquals(3600, ((Number) payload.get("expiresIn")).intValue());
         assertEquals("Bearer", payload.get("tokenType"));
         assertNotNull(payload.get("accessToken"));
         assertEquals(1, ((Number) payload.get("userId")).intValue());
@@ -107,6 +117,23 @@ class ApiRestIT extends JerseyTest {
         assertEquals(401, response.getStatus());
         Map<?, ?> payload = response.readEntity(Map.class);
         assertEquals("UNAUTHORIZED", payload.get("error"));
+    }
+
+    @Test
+    void securedEndpoint_shouldAttachSubjectAndSecurityContext() {
+        String token = loginAndGetToken();
+
+        Response response = target("me")
+                .request(MediaType.APPLICATION_JSON_TYPE)
+                .header("Authorization", "Bearer " + token)
+                .get();
+
+        assertEquals(200, response.getStatus());
+        Map<?, ?> payload = response.readEntity(Map.class);
+        assertEquals("alice", payload.get("principalName"));
+        assertEquals(1, ((Number) payload.get("authUserId")).intValue());
+        assertEquals(Boolean.TRUE, payload.get("hasSubjectProperty"));
+        assertEquals(Boolean.TRUE, payload.get("isRoleUser"));
     }
 
     @Test
@@ -157,10 +184,14 @@ class ApiRestIT extends JerseyTest {
     private String loginAndGetToken() {
         Response loginResponse = target("login")
                 .request(MediaType.APPLICATION_JSON_TYPE)
-                .post(Entity.json(Map.of("login", "alice", "password", "secret")));
+                .post(Entity.json(Map.of("username", "alice", "password", "secret")));
 
         assertEquals(200, loginResponse.getStatus());
         Map<?, ?> body = loginResponse.readEntity(Map.class);
+        Object token = body.get("token");
+        if (token instanceof String) {
+            return (String) token;
+        }
         return (String) body.get("accessToken");
     }
 
@@ -181,4 +212,23 @@ class ApiRestIT extends JerseyTest {
         annonce.setVersion(0L);
         return annonce;
     }
+    @Secured
+    @Path("/me")
+    public static class SecurityProbeResource {
+
+        @GET
+        @Produces(MediaType.APPLICATION_JSON)
+        public Map<String, Object> me(@Context SecurityContext securityContext,
+                                      @Context ContainerRequestContext requestContext) {
+            Object authUserId = requestContext.getProperty("authUserId");
+            Object subject = requestContext.getProperty("subject");
+            return Map.of(
+                    "principalName", securityContext.getUserPrincipal() == null ? null : securityContext.getUserPrincipal().getName(),
+                    "authUserId", authUserId,
+                    "hasSubjectProperty", subject != null,
+                    "isRoleUser", securityContext.isUserInRole("ROLE_USER")
+            );
+        }
+    }
+
 }

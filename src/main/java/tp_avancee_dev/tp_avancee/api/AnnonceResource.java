@@ -14,11 +14,11 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
-import jakarta.ws.rs.container.ContainerRequestContext;
 import tp_avancee_dev.tp_avancee.api.dto.AnnonceRequestDto;
 import tp_avancee_dev.tp_avancee.api.dto.AnnonceResponseDto;
 import tp_avancee_dev.tp_avancee.api.dto.PagedResponseDto;
@@ -26,9 +26,11 @@ import tp_avancee_dev.tp_avancee.api.dto.StatusPatchDto;
 import tp_avancee_dev.tp_avancee.api.filter.Secured;
 import tp_avancee_dev.tp_avancee.api.log.StructuredLogger;
 import tp_avancee_dev.tp_avancee.api.mapper.AnnonceMapper;
+import tp_avancee_dev.tp_avancee.api.security.UserPrincipal;
 import tp_avancee_dev.tp_avancee.model.Annonce;
 import tp_avancee_dev.tp_avancee.service.AnnonceService;
 
+import javax.security.auth.Subject;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -83,7 +85,8 @@ public class AnnonceResource {
                                   @Context UriInfo uriInfo,
                                   @Context ContainerRequestContext requestContext) {
 
-        Long authUserId = extractAuthUserId(requestContext);
+        Subject currentSubject = extractSubject(requestContext);
+        Long authUserId = extractAuthUserId(currentSubject, requestContext);
         Long authorId = authUserId != null ? authUserId : request.getAuthorId();
         if (authorId == null) {
             throw new BadRequestException("authorId is required");
@@ -110,7 +113,8 @@ public class AnnonceResource {
     public Response updateAnnonce(@PathParam("id") Long id,
                                   @Valid AnnonceRequestDto request,
                                   @Context ContainerRequestContext requestContext) {
-        Long authUserId = extractAuthUserId(requestContext);
+        Subject currentSubject = extractSubject(requestContext);
+        Long authUserId = extractAuthUserId(currentSubject, requestContext);
 
         Annonce updated = annonceService.updateAnnonce(
                 id,
@@ -119,7 +123,7 @@ public class AnnonceResource {
                 request.getAdress(),
                 request.getMail(),
                 request.getCategoryId(),
-                authUserId,
+                currentSubject,
                 request.getVersion()
         );
         StructuredLogger.info("api.annonces.update", Map.of("annonceId", id, "userId", authUserId));
@@ -130,9 +134,10 @@ public class AnnonceResource {
     @Path("/{id}")
     public Response deleteAnnonce(@PathParam("id") Long id,
                                   @Context ContainerRequestContext requestContext) {
-        Long authUserId = extractAuthUserId(requestContext);
+        Subject currentSubject = extractSubject(requestContext);
+        Long authUserId = extractAuthUserId(currentSubject, requestContext);
 
-        boolean deleted = annonceService.deleteAnnonce(id, authUserId);
+        boolean deleted = annonceService.deleteAnnonce(id, currentSubject);
         if (!deleted) {
             throw new NotFoundException("Annonce introuvable : id=" + id);
         }
@@ -145,14 +150,31 @@ public class AnnonceResource {
     public Response patchAnnonceStatus(@PathParam("id") Long id,
                                        @Valid StatusPatchDto request,
                                        @Context ContainerRequestContext requestContext) {
-        Long authUserId = extractAuthUserId(requestContext);
+        Subject currentSubject = extractSubject(requestContext);
+        Long authUserId = extractAuthUserId(currentSubject, requestContext);
 
-        Annonce updated = annonceService.changeStatusTo(id, request.getStatus(), authUserId);
+        Annonce updated = annonceService.changeStatusTo(id, request.getStatus(), currentSubject);
         StructuredLogger.info("api.annonces.status.patch", Map.of("annonceId", id, "userId", authUserId, "status", request.getStatus()));
         return Response.ok(AnnonceMapper.toBasicDto(updated)).build();
     }
 
-    private Long extractAuthUserId(ContainerRequestContext requestContext) {
+    private Subject extractSubject(ContainerRequestContext requestContext) {
+        Object value = requestContext.getProperty("subject");
+        if (value instanceof Subject) {
+            return (Subject) value;
+        }
+        return null;
+    }
+
+    private Long extractAuthUserId(Subject currentSubject, ContainerRequestContext requestContext) {
+        if (currentSubject != null) {
+            return currentSubject.getPrincipals(UserPrincipal.class)
+                    .stream()
+                    .findFirst()
+                    .map(UserPrincipal::getUserId)
+                    .orElse(null);
+        }
+
         Object value = requestContext.getProperty("authUserId");
         if (value instanceof Long) {
             return (Long) value;

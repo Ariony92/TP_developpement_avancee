@@ -3,6 +3,8 @@ package tp_avancee_dev.tp_avancee.service;
 import jakarta.persistence.EntityManager;
 import tp_avancee_dev.tp_avancee.api.exceptions.AccessDeniedException;
 import tp_avancee_dev.tp_avancee.api.exceptions.BusinessConflictException;
+import tp_avancee_dev.tp_avancee.api.security.RolePrincipal;
+import tp_avancee_dev.tp_avancee.api.security.UserPrincipal;
 import tp_avancee_dev.tp_avancee.db.EntityManagerUtil;
 import tp_avancee_dev.tp_avancee.model.Annonce;
 import tp_avancee_dev.tp_avancee.model.Category;
@@ -10,11 +12,13 @@ import tp_avancee_dev.tp_avancee.model.Status;
 import tp_avancee_dev.tp_avancee.model.User;
 import tp_avancee_dev.tp_avancee.repository.AnnonceRepository;
 
+import javax.security.auth.Subject;
 import java.util.List;
 import java.util.Objects;
 
 public class AnnonceService {
 
+    private static final String ROLE_ADMIN = "ROLE_ADMIN";
     private final AnnonceRepository annonceRepository;
 
     public AnnonceService() {
@@ -78,7 +82,7 @@ public class AnnonceService {
                                  String adress,
                                  String mail,
                                  Long categoryId) {
-        return updateAnnonce(annonceId, title, description, adress, mail, categoryId, null, null);
+        return updateAnnonce(annonceId, title, description, adress, mail, categoryId, (Long) null, null);
     }
 
     public Annonce updateAnnonce(Long annonceId,
@@ -89,6 +93,29 @@ public class AnnonceService {
                                  Long categoryId,
                                  Long requesterId,
                                  Long expectedVersion) {
+        return updateAnnonce(annonceId, title, description, adress, mail, categoryId, null, requesterId, expectedVersion);
+    }
+
+    public Annonce updateAnnonce(Long annonceId,
+                                 String title,
+                                 String description,
+                                 String adress,
+                                 String mail,
+                                 Long categoryId,
+                                 Subject currentSubject,
+                                 Long expectedVersion) {
+        return updateAnnonce(annonceId, title, description, adress, mail, categoryId, currentSubject, null, expectedVersion);
+    }
+
+    private Annonce updateAnnonce(Long annonceId,
+                                  String title,
+                                  String description,
+                                  String adress,
+                                  String mail,
+                                  Long categoryId,
+                                  Subject currentSubject,
+                                  Long requesterId,
+                                  Long expectedVersion) {
         EntityManager em = EntityManagerUtil.createEntityManager();
         try {
             em.getTransaction().begin();
@@ -98,7 +125,7 @@ public class AnnonceService {
                 throw new IllegalArgumentException("Annonce introuvable : id=" + annonceId);
             }
 
-            checkAuthorPermission(annonce, requesterId);
+            checkAuthorPermission(annonce, currentSubject, requesterId);
 
             if (annonce.getStatus() == Status.PUBLISHED) {
                 throw new BusinessConflictException("Conflit métier: une annonce PUBLISHED ne peut plus être modifiée");
@@ -133,17 +160,26 @@ public class AnnonceService {
     }
 
     public Annonce publishAnnonce(Long annonceId) {
-        return changeStatus(annonceId, Status.PUBLISHED, null);
+        return changeStatus(annonceId, Status.PUBLISHED, null, null);
     }
 
     public Annonce archiveAnnonce(Long annonceId) {
-        return changeStatus(annonceId, Status.ARCHIVED, null);
+        return changeStatus(annonceId, Status.ARCHIVED, null, null);
     }
 
     public boolean deleteAnnonce(Long annonceId) {
-        return deleteAnnonce(annonceId, null);
+        return deleteAnnonce(annonceId, (Long) null);
     }
+
     public boolean deleteAnnonce(Long annonceId, Long requesterId) {
+        return deleteAnnonce(annonceId, null, requesterId);
+    }
+
+    public boolean deleteAnnonce(Long annonceId, Subject currentSubject) {
+        return deleteAnnonce(annonceId, currentSubject, null);
+    }
+
+    private boolean deleteAnnonce(Long annonceId, Subject currentSubject, Long requesterId) {
         EntityManager em = EntityManagerUtil.createEntityManager();
         try {
             em.getTransaction().begin();
@@ -154,7 +190,7 @@ public class AnnonceService {
                 return false;
             }
 
-            checkAuthorPermission(annonce, requesterId);
+            checkAuthorPermission(annonce, currentSubject, requesterId);
 
             if (annonce.getStatus() != Status.ARCHIVED) {
                 throw new BusinessConflictException("Conflit métier: archivage obligatoire avant suppression");
@@ -203,17 +239,24 @@ public class AnnonceService {
         if (newStatus == null) {
             throw new IllegalArgumentException("Le statut est obligatoire");
         }
-        return changeStatus(annonceId, newStatus, null);
+        return changeStatus(annonceId, newStatus, null, null);
     }
 
     public Annonce changeStatusTo(Long annonceId, Status newStatus, Long requesterId) {
         if (newStatus == null) {
             throw new IllegalArgumentException("Le statut est obligatoire");
         }
-        return changeStatus(annonceId, newStatus, requesterId);
+        return changeStatus(annonceId, newStatus, null, requesterId);
     }
 
-    private Annonce changeStatus(Long annonceId, Status newStatus, Long requesterId) {
+    public Annonce changeStatusTo(Long annonceId, Status newStatus, Subject currentSubject) {
+        if (newStatus == null) {
+            throw new IllegalArgumentException("Le statut est obligatoire");
+        }
+        return changeStatus(annonceId, newStatus, currentSubject, null);
+    }
+
+    private Annonce changeStatus(Long annonceId, Status newStatus, Subject currentSubject, Long requesterId) {
         EntityManager em = EntityManagerUtil.createEntityManager();
         try {
             em.getTransaction().begin();
@@ -222,7 +265,7 @@ public class AnnonceService {
             if (annonce == null) {
                 throw new IllegalArgumentException("Annonce introuvable : id=" + annonceId);
             }
-            checkAuthorPermission(annonce, requesterId);
+            checkAuthorPermission(annonce, currentSubject, requesterId);
 
             if (annonce.getStatus() == newStatus) {
                 throw new BusinessConflictException("Le statut est déjà " + newStatus);
@@ -246,14 +289,35 @@ public class AnnonceService {
             em.close();
         }
     }
-    private void checkAuthorPermission(Annonce annonce, Long requesterId) {
-        if (requesterId == null) {
+    private void checkAuthorPermission(Annonce annonce, Subject currentSubject, Long requesterId) {
+        Long effectiveRequesterId = requesterId != null ? requesterId : extractUserId(currentSubject);
+        if (effectiveRequesterId == null) {
             throw new AccessDeniedException("Utilisateur non authentifié");
         }
 
         Long authorId = annonce.getAuthor() == null ? null : annonce.getAuthor().getId();
-        if (!Objects.equals(authorId, requesterId)) {
+        if (!Objects.equals(authorId, effectiveRequesterId) && !hasRole(currentSubject, ROLE_ADMIN)) {
             throw new AccessDeniedException("Seul l'auteur de l'annonce peut modifier/supprimer cette annonce");
         }
+    }
+
+    private Long extractUserId(Subject subject) {
+        if (subject == null) {
+            return null;
+        }
+        return subject.getPrincipals(UserPrincipal.class)
+                .stream()
+                .findFirst()
+                .map(UserPrincipal::getUserId)
+                .orElse(null);
+    }
+
+    private boolean hasRole(Subject subject, String role) {
+        if (subject == null || role == null) {
+            return false;
+        }
+        return subject.getPrincipals(RolePrincipal.class)
+                .stream()
+                .anyMatch(principal -> role.equals(principal.getName()));
     }
 }

@@ -14,11 +14,16 @@ import java.util.Map;
 
 public class BearerTokenLoginModule implements LoginModule {
 
+    private static final String ROLE_USER = "ROLE_USER";
+    private static final String ROLE_ADMIN = "ROLE_ADMIN";
+
     private Subject subject;
     private CallbackHandler callbackHandler;
 
     private boolean authenticationSucceeded;
-    private AuthenticatedUserPrincipal authenticatedPrincipal;
+    private UserPrincipal userPrincipal;
+    private RolePrincipal userRolePrincipal;
+    private RolePrincipal adminRolePrincipal;
 
     @Override
     public void initialize(Subject subject,
@@ -52,21 +57,28 @@ public class BearerTokenLoginModule implements LoginModule {
         }
 
         ApiTokenService.TokenSession session = tokenService.findSession(token)
-                .orElseThrow(() -> new FailedLoginException("Token invalide"));
+                .orElseThrow(() -> new FailedLoginException("Token invalide ou expiré"));
 
-        authenticatedPrincipal = new AuthenticatedUserPrincipal(session.getUserId(), session.getUsername());
+        userPrincipal = new UserPrincipal(session.getUserId(), session.getUsername());
+        userRolePrincipal = new RolePrincipal(ROLE_USER);
+        if ("admin".equalsIgnoreCase(session.getUsername())) {
+            adminRolePrincipal = new RolePrincipal(ROLE_ADMIN);
+        }
+
         authenticationSucceeded = true;
         return true;
     }
 
     @Override
     public boolean commit() {
-        if (!authenticationSucceeded || authenticatedPrincipal == null) {
+        if (!authenticationSucceeded || userPrincipal == null) {
             return false;
         }
 
-        if (!subject.getPrincipals().contains(authenticatedPrincipal)) {
-            subject.getPrincipals().add(authenticatedPrincipal);
+        subject.getPrincipals().add(userPrincipal);
+        subject.getPrincipals().add(userRolePrincipal);
+        if (adminRolePrincipal != null) {
+            subject.getPrincipals().add(adminRolePrincipal);
         }
         return true;
     }
@@ -82,11 +94,20 @@ public class BearerTokenLoginModule implements LoginModule {
 
     @Override
     public boolean logout() {
-        if (authenticatedPrincipal != null) {
-            subject.getPrincipals().remove(authenticatedPrincipal);
+        if (userPrincipal != null) {
+            subject.getPrincipals().remove(userPrincipal);
         }
+        if (userRolePrincipal != null) {
+            subject.getPrincipals().remove(userRolePrincipal);
+        }
+        if (adminRolePrincipal != null) {
+            subject.getPrincipals().remove(adminRolePrincipal);
+        }
+
         authenticationSucceeded = false;
-        authenticatedPrincipal = null;
+        userPrincipal = null;
+        userRolePrincipal = null;
+        adminRolePrincipal = null;
         return true;
     }
 }

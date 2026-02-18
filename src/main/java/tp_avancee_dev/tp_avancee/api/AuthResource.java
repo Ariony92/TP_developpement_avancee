@@ -22,6 +22,8 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
+import javax.security.auth.login.AppConfigurationEntry;
+import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
@@ -33,6 +35,7 @@ import java.util.Map;
 public class AuthResource {
 
     private static final String JAAS_LOGIN_DOMAIN = "MasterAnnonceLogin";
+    private static final long TOKEN_EXPIRES_IN_SECONDS = ApiTokenService.TOKEN_TTL_SECONDS;
 
     private final AuthService authService;
     private final ApiTokenService apiTokenService;
@@ -49,7 +52,7 @@ public class AuthResource {
     @POST
     public Response login(@Valid LoginRequestDto request) {
         try {
-            Subject subject = authenticateWithJaas(request.getLogin(), request.getPassword());
+            Subject subject = authenticateWithJaas(request.getUsername(), request.getPassword());
             UserPrincipal principal = subject.getPrincipals(UserPrincipal.class)
                     .stream()
                     .findFirst()
@@ -58,6 +61,8 @@ public class AuthResource {
             String token = apiTokenService.createToken(principal.getUserId(), principal.getName());
 
             LoginResponseDto payload = new LoginResponseDto();
+            payload.setToken(token);
+            payload.setExpiresIn(TOKEN_EXPIRES_IN_SECONDS);
             payload.setTokenType("Bearer");
             payload.setAccessToken(token);
             payload.setUserId(principal.getUserId());
@@ -66,14 +71,14 @@ public class AuthResource {
             StructuredLogger.info("api.login.success", Map.of("userId", principal.getUserId(), "username", principal.getName()));
             return Response.ok(payload).build();
         } catch (LoginException e) {
-            StructuredLogger.info("api.login.failed", Map.of("login", request.getLogin()));
+            StructuredLogger.info("api.login.failed", Map.of("login", request.getUsername()));
             throw new NotAuthorizedException("Identifiants invalides");
         }
     }
 
     private Subject authenticateWithJaas(String login, String password) throws LoginException {
         CallbackHandler callbackHandler = new LoginCallbackHandler(login, password, authService);
-        LoginContext loginContext = new LoginContext(JAAS_LOGIN_DOMAIN, null, callbackHandler);
+        LoginContext loginContext = new LoginContext(JAAS_LOGIN_DOMAIN, null, callbackHandler, new LoginConfiguration());
         loginContext.login();
         return loginContext.getSubject();
     }
@@ -105,4 +110,15 @@ public class AuthResource {
         }
     }
 
+    private static class LoginConfiguration extends Configuration {
+        @Override
+        public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
+            AppConfigurationEntry entry = new AppConfigurationEntry(
+                    "tp_avancee_dev.tp_avancee.api.security.DbLoginModule",
+                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                    Map.of()
+            );
+            return new AppConfigurationEntry[]{entry};
+        }
+    }
 }

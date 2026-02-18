@@ -15,13 +15,20 @@ paths:
           application/json:
             schema:
               type: object
-              required: [login, password]
+              required: [username, password]
               properties:
-                login: { type: string }
+                username: { type: string }
                 password: { type: string }
       responses:
         '200':
           description: Token généré
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  expiresIn: { type: integer, example: 3600 }
         '401':
           description: Identifiants invalides
   /annonces:

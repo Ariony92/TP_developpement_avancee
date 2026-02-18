@@ -1,16 +1,19 @@
 package tp_avancee_dev.tp_avancee.api.filter;
 
 import jakarta.annotation.Priority;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.ext.Provider;
 import tp_avancee_dev.tp_avancee.api.security.ApiTokenServiceCallback;
-import tp_avancee_dev.tp_avancee.api.security.AuthenticatedUserPrincipal;
 import tp_avancee_dev.tp_avancee.api.security.BearerTokenLoginModule;
+import tp_avancee_dev.tp_avancee.api.security.RolePrincipal;
 import tp_avancee_dev.tp_avancee.api.security.TokenCallback;
+import tp_avancee_dev.tp_avancee.api.security.UserPrincipal;
 import tp_avancee_dev.tp_avancee.service.ApiTokenService;
 
 import javax.security.auth.Subject;
@@ -24,6 +27,8 @@ import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Secured
 @Provider
@@ -35,6 +40,9 @@ public class BearerAuthFilter implements ContainerRequestFilter {
 
     private final ApiTokenService apiTokenService = ApiTokenService.getInstance();
 
+    @Context
+    private HttpServletRequest httpServletRequest;
+
     @Override
     public void filter(ContainerRequestContext requestContext) {
         String authorization = requestContext.getHeaderString("Authorization");
@@ -45,15 +53,26 @@ public class BearerAuthFilter implements ContainerRequestFilter {
         String token = authorization.substring(BEARER_PREFIX.length()).trim();
         try {
             Subject subject = authenticateWithJaas(token);
-            AuthenticatedUserPrincipal principal = subject.getPrincipals(AuthenticatedUserPrincipal.class)
+            UserPrincipal principal = subject.getPrincipals(UserPrincipal.class)
                     .stream()
                     .findFirst()
                     .orElseThrow(() -> new NotAuthorizedException("Principal JAAS introuvable"));
 
-            SecurityContext original = requestContext.getSecurityContext();
+            Set<String> roles = subject.getPrincipals(RolePrincipal.class)
+                    .stream()
+                    .map(RolePrincipal::getName)
+                    .collect(Collectors.toSet());
+
             requestContext.setProperty("authUserId", principal.getUserId());
             requestContext.setProperty("authUsername", principal.getName());
-            requestContext.setSecurityContext(new BearerSecurityContext(principal, original != null && original.isSecure()));
+            requestContext.setProperty("subject", subject);
+            if (httpServletRequest != null) {
+                httpServletRequest.setAttribute("subject", subject);
+            }
+            SecurityContext original = requestContext.getSecurityContext();
+            boolean isSecure = original != null && original.isSecure();
+            requestContext.setSecurityContext(new BearerSecurityContext(principal, roles, isSecure));
+
         } catch (LoginException e) {
             throw new NotAuthorizedException("Token invalide", e);
         }
@@ -104,11 +123,13 @@ public class BearerAuthFilter implements ContainerRequestFilter {
 
     private static class BearerSecurityContext implements SecurityContext {
 
-        private final AuthenticatedUserPrincipal principal;
+        private final UserPrincipal principal;
+        private final Set<String> roles;
         private final boolean secure;
 
-        private BearerSecurityContext(AuthenticatedUserPrincipal principal, boolean secure) {
+        private BearerSecurityContext(UserPrincipal principal, Set<String> roles, boolean secure) {
             this.principal = principal;
+            this.roles = roles;
             this.secure = secure;
         }
 
@@ -119,7 +140,7 @@ public class BearerAuthFilter implements ContainerRequestFilter {
 
         @Override
         public boolean isUserInRole(String role) {
-            return false;
+            return roles.contains(role);
         }
 
         @Override

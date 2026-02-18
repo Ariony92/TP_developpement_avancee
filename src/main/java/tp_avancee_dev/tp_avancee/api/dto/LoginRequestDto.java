@@ -1,21 +1,23 @@
 package tp_avancee_dev.tp_avancee.api.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotBlank;
 
 public class LoginRequestDto {
 
-    @NotBlank(message = "login is required")
-    private String login;
+    @NotBlank(message = "username is required")
+    @JsonAlias("login")
+    private String username;
 
     @NotBlank(message = "password is required")
     private String password;
 
-    public String getLogin() {
-        return login;
+    public String getUsername() {
+        return username;
     }
 
-    public void setLogin(String login) {
-        this.login = login;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getPassword() {
