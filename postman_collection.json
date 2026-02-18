@@ -1,0 +1,209 @@
+{
+  "info": {
+    "_postman_id": "b9f7e5e2-9a7b-4b3e-9f7e-123456789abc",
+    "name": "TP3 MasterAnnonce API",
+    "description": "Collection Postman pour tester l'API sécurisée avec token Bearer",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "LOGIN",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token', json.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"alice\",\n  \"password\": \"secret\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET annonces (SANS TOKEN) -> doit faire 401",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 401', function () {",
+              "  pm.response.to.have.status(401);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/annonces",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "annonces"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET annonces (AVEC TOKEN) -> doit faire 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/annonces?page=1&size=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "annonces"
+          ],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "size", "value": "10" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "CREATE annonce (AVEC TOKEN)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Annonce test\",\n  \"description\": \"Description test\",\n  \"adress\": \"Paris\",\n  \"mail\": \"test@test.com\",\n  \"categoryId\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/annonces",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "annonces"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "DELETE annonce (id=1) (AVEC TOKEN)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/annonces/1",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "annonces",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/dev_avancee_war"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ]
+}

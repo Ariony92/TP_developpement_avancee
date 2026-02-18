@@ -2,6 +2,19 @@
 
 # ⚠️ Veuillez vous connecter à une base de donnée afin de faire fonctionner le projet !
 
+# URL pour tester l'API
+
+Une fois le projet lancé :
+
+http://localhost:8080/dev_avancee_war/api
+
+
+Endpoint de login :
+
+POST http://localhost:8080/dev_avancee_war/api/login
+
+
+
 ## TP Développement Avancé — Backend REST Java (JAX-RS / JPA / JAAS)
 
 ## 1) Objectif du projet
@@ -128,6 +141,7 @@ Base URL locale :
 
 http://localhost:8080/tp_avancee/api
 
+
 # 7) Lancer les tests
 Tous les tests unitaires actifs
 mvn test
@@ -152,6 +166,7 @@ src/test/java/tp_avancee_dev/tp_avancee/
 src/test/resources/
   META-INF/persistence.xml
   sql/test-dataset.sql
+
 
 # 9)Problèmes rencontrés et solutions apportées
 9.1 Transactions placées au mauvais niveau
@@ -203,4 +218,35 @@ Spécification OpenAPI : src/main/resources/openapi.yaml
 Exposition brute : GET /api/openapi
 
 Page de consultation : src/main/webapp/swagger.html
+
+
+# 11) Collection Postman
+
+La collection Postman permettant de tester l'API est disponible à la racine du projet :
+
+postman_collection.json
+
+Import dans Postman :
+
+File → Import → sélectionner le fichier
+
+Variable utilisée :
+
+baseUrl = http://localhost:8080/dev_avancee_war
+
+Workflow :
+
+1. Exécuter LOGIN
+2. Le token est enregistré automatiquement
+3. Tester GET /api/annonces
+
+
+
+# 12) Scripts SQL
+
+Scripts présents :
+
+src/test/resources/sql/test-dataset.sql
+
+Ils permettent de créer les données de test.
 
