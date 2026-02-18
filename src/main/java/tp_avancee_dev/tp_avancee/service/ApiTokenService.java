@@ -22,8 +22,12 @@ public class ApiTokenService {
     }
 
     public String createToken(User user) {
+        return createToken(user.getId(), user.getUsername());
+    }
+
+    public String createToken(Long userId, String username) {
         String token = UUID.randomUUID().toString();
-        sessions.put(token, new TokenSession(user.getId(), user.getUsername(), Instant.now()));
+        sessions.put(token, new TokenSession(userId, username, Instant.now()));
         return token;
     }
 

@@ -98,6 +98,18 @@ class ApiRestIT extends JerseyTest {
     }
 
     @Test
+    void annonces_withInvalidToken_shouldReturn401JsonError() {
+        Response response = target("annonces")
+                .request(MediaType.APPLICATION_JSON_TYPE)
+                .header("Authorization", "Bearer invalid-token")
+                .get();
+
+        assertEquals(401, response.getStatus());
+        Map<?, ?> payload = response.readEntity(Map.class);
+        assertEquals("UNAUTHORIZED", payload.get("error"));
+    }
+
+    @Test
     void annonces_withToken_shouldReturn200AndItems() {
         String token = loginAndGetToken();
 

@@ -8,6 +8,19 @@ import java.util.List;
 
 public class UserRepository {
 
+    public User findByLoginAndPassword(EntityManager em, String login, String password) {
+        List<User> users = em.createQuery(
+                        "SELECT u FROM User u WHERE (u.username = :login OR u.email = :login) AND u.password = :password",
+                        User.class
+                )
+                .setParameter("login", login)
+                .setParameter("password", password)
+                .setMaxResults(1)
+                .getResultList();
+
+        return users.isEmpty() ? null : users.get(0);
+    }
+
     public User findById(EntityManager em, Long id) {
         return em.find(User.class, id);
     }

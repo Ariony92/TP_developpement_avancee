@@ -154,6 +154,9 @@
                 <version>${surefire.version}</version>
                 <configuration>
                     <skipTests>${skipUTs}</skipTests>
+                    <systemPropertyVariables>
+                        <java.security.auth.login.config>${project.basedir}/src/main/resources/jaas.conf</java.security.auth.login.config>
+                    </systemPropertyVariables>
                     <includes>
                         <include>**/*Test.java</include>
                     </includes>
@@ -169,6 +172,9 @@
                 <version>${failsafe.version}</version>
                 <configuration>
                     <skipITs>${skipITs}</skipITs>
+                    <systemPropertyVariables>
+                        <java.security.auth.login.config>${project.basedir}/src/main/resources/jaas.conf</java.security.auth.login.config>
+                    </systemPropertyVariables>
                     <includes>
                         <include>**/*IntegrationTest.java</include>
                         <include>**/*IT.java</include>
@@ -189,6 +195,9 @@
                 <version>2.2</version>
                 <configuration>
                     <path>/tp_avancee</path>
+                    <systemProperties>
+                        <java.security.auth.login.config>${project.basedir}/src/main/resources/jaas.conf</java.security.auth.login.config>
+                    </systemProperties>
                 </configuration>
             </plugin>
         </plugins>
