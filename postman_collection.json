@@ -1,218 +1,869 @@
 {
   "info": {
     "_postman_id": "b9f7e5e2-9a7b-4b3e-9f7e-123456789abc",
-    "name": "TP3 MasterAnnonce API (CORRIGÉ)",
-    "description": "Collection Postman corrigée pour tester l'API (login + token + annonces + archive avant delete). Utilise des variables d'Environment: baseUrl, token, annonceId, version.",
+    "name": "TP3 MasterAnnonce API",
+    "description": "Collection Postman complète pour tester l'API MasterAnnonce (TP3). Couvre : authentification, CRUD annonces, règles métier, validation, sécurité, endpoints de base. Variable : baseUrl.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "1 - LOGIN (stocke token dans Environment)",
-      "event": [
+      "name": "API de base",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status 200', function () {",
-              "  pm.response.to.have.status(200);",
-              "});",
-              "const json = pm.response.json();",
-              "pm.environment.set('token', json.token);",
-              "// optionnel: nettoyer des variables si tu relances un scénario",
-              "// pm.environment.unset('annonceId');",
-              "// pm.environment.unset('version');"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Accept", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"username\": \"alice\",\n  \"password\": \"secret\"\n}"
+          "name": "GET /api/helloWorld",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Contient message Hello World', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.message).to.eql('Hello World');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/helloWorld",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "helloWorld"]
+            }
+          },
+          "response": []
         },
-        "url": {
-          "raw": "{{baseUrl}}/api/login",
-          "host": [ "{{baseUrl}}" ],
-          "path": [ "api", "login" ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "2 - GET annonces (SANS TOKEN) -> doit faire 401",
-      "event": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status 401', function () {",
-              "  pm.response.to.have.status(401);",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "Accept", "value": "application/json" }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/api/annonces",
-          "host": [ "{{baseUrl}}" ],
-          "path": [ "api", "annonces" ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "3 - GET annonces (AVEC TOKEN) -> doit faire 200",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status 200', function () {",
-              "  pm.response.to.have.status(200);",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "Accept", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}" }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/api/annonces?page=0&size=10",
-          "host": [ "{{baseUrl}}" ],
-          "path": [ "api", "annonces" ],
-          "query": [
-            { "key": "page", "value": "0" },
-            { "key": "size", "value": "10" }
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "4 - CREATE annonce (AVEC TOKEN) -> stocke annonceId + version",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status 200 ou 201', function () {",
-              "  pm.expect([200, 201]).to.include(pm.response.code);",
-              "});",
-              "const json = pm.response.json();",
-              "pm.environment.set('annonceId', json.id);",
-              "pm.environment.set('version', (json.version !== undefined && json.version !== null) ? json.version : 0);"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Accept", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"title\": \"Annonce test\",\n  \"description\": \"Description test\",\n  \"adress\": \"Paris\",\n  \"mail\": \"test@test.com\",\n  \"categoryId\": 1,\n  \"authorId\": 2,\n  \"version\": 0\n}"
+          "name": "GET /api/params (QueryParams)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Retourne les paramètres', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.type).to.eql('query');",
+                  "  pm.expect(json.name).to.eql('Jean');",
+                  "  pm.expect(json.age).to.eql(25);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/params?name=Jean&age=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "params"],
+              "query": [
+                { "key": "name", "value": "Jean" },
+                { "key": "age", "value": "25" }
+              ]
+            }
+          },
+          "response": []
         },
-        "url": {
-          "raw": "{{baseUrl}}/api/annonces",
-          "host": [ "{{baseUrl}}" ],
-          "path": [ "api", "annonces" ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "5 - PATCH status -> ARCHIVED (obligatoire avant DELETE)",
-      "event": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status 200 ou 204', function () {",
-              "  pm.expect([200, 204]).to.include(pm.response.code);",
-              "});",
-              "// Si l'API renvoie l'annonce, on peut MAJ la version",
-              "try {",
-              "  const json = pm.response.json();",
-              "  if (json && json.version !== undefined && json.version !== null) {",
-              "    pm.environment.set('version', json.version);",
-              "  }",
-              "} catch (e) {",
-              "  // rien",
-              "}"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "PATCH",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Accept", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"status\": \"ARCHIVED\"\n}"
+          "name": "GET /api/params/{id} (PathParam)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Retourne le paramètre id', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.type).to.eql('path');",
+                  "  pm.expect(json.id).to.eql(42);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/params/42",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "params", "42"]
+            }
+          },
+          "response": []
         },
-        "url": {
-          "raw": "{{baseUrl}}/api/annonces/{{annonceId}}/status",
-          "host": [ "{{baseUrl}}" ],
-          "path": [ "api", "annonces", "{{annonceId}}", "status" ]
+        {
+          "name": "GET /api/errors/400 (simulation)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Payload JSON normalisé', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.error).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/errors/400",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "errors", "400"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/errors/404 (simulation)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/errors/404",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "errors", "404"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/errors/409 (simulation)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/errors/409",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "errors", "409"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/errors/500 (simulation)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 500', function () {",
+                  "  pm.response.to.have.status(500);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/errors/500",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "errors", "500"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/openapi (spécification)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Contient openapi', function () {",
+                  "  pm.expect(pm.response.text()).to.include('openapi');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/yaml" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/openapi",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "openapi"]
+            }
+          },
+          "response": []
         }
-      },
-      "response": []
+      ]
     },
     {
-      "name": "6 - DELETE annonce (AVEC TOKEN) -> utilise annonceId",
-      "event": [
+      "name": "Authentification",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status 200 ou 204', function () {",
-              "  pm.expect([200, 204]).to.include(pm.response.code);",
-              "});"
-            ]
-          }
+          "name": "POST /api/login — succès",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Contient un token', function () {",
+                  "  pm.expect(json.token).to.be.a('string');",
+                  "  pm.expect(json.token.length).to.be.above(10);",
+                  "});",
+                  "pm.test('Contient tokenType Bearer', function () {",
+                  "  pm.expect(json.tokenType).to.eql('Bearer');",
+                  "});",
+                  "pm.test('Contient expiresIn', function () {",
+                  "  pm.expect(json.expiresIn).to.be.above(0);",
+                  "});",
+                  "pm.environment.set('token', json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"alice\",\n  \"password\": \"secret\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/login — identifiants invalides → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"inconnu\",\n  \"password\": \"mauvais\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "login"]
+            }
+          },
+          "response": []
         }
-      ],
-      "request": {
-        "method": "DELETE",
-        "header": [
-          { "key": "Accept", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}" }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/api/annonces/{{annonceId}}",
-          "host": [ "{{baseUrl}}" ],
-          "path": [ "api", "annonces", "{{annonceId}}" ]
+      ]
+    },
+    {
+      "name": "Sécurité",
+      "item": [
+        {
+          "name": "GET /api/annonces — SANS token → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test('Payload erreur normalisé', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.error).to.eql('UNAUTHORIZED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/annonces — token INVALIDE → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer faux-token-invalide" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces"]
+            }
+          },
+          "response": []
         }
-      },
-      "response": []
+      ]
+    },
+    {
+      "name": "CRUD Annonces",
+      "item": [
+        {
+          "name": "GET /api/annonces — liste paginée",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Contient items et pagination', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.items).to.be.an('array');",
+                  "  pm.expect(json.page).to.exist;",
+                  "  pm.expect(json.size).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces?page=1&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/annonces — recherche par mot-clé",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces?keyword=Sport&page=1&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces"],
+              "query": [
+                { "key": "keyword", "value": "Sport" },
+                { "key": "page", "value": "1" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/annonces — création",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 ou 201', function () {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Annonce créée avec id', function () {",
+                  "  pm.expect(json.id).to.exist;",
+                  "  pm.expect(json.title).to.eql('Annonce test Postman');",
+                  "});",
+                  "pm.environment.set('annonceId', json.id);",
+                  "pm.environment.set('version', (json.version !== undefined && json.version !== null) ? json.version : 0);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Annonce test Postman\",\n  \"description\": \"Description de test\",\n  \"adress\": \"Paris\",\n  \"mail\": \"test@test.com\",\n  \"categoryId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/annonces — payload invalide → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Erreur de validation', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.error).to.exist;",
+                  "  pm.expect(json.messages).to.be.an('array');",
+                  "  pm.expect(json.messages.length).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"description\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/annonces/{id} — détail",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Contient les détails de l annonce', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.exist;",
+                  "  pm.expect(json.title).to.exist;",
+                  "  pm.expect(json.authorUsername).to.exist;",
+                  "  pm.expect(json.categoryLabel).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces/{{annonceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces", "{{annonceId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/annonces/99999 — inexistante → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Erreur NOT_FOUND', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.error).to.eql('NOT_FOUND');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces/99999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces", "99999"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/annonces/{id} — mise à jour",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Titre mis à jour', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.title).to.eql('Annonce modifiée');",
+                  "});",
+                  "try {",
+                  "  var json = pm.response.json();",
+                  "  if (json.version !== undefined) {",
+                  "    pm.environment.set('version', json.version);",
+                  "  }",
+                  "} catch(e) {}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Annonce modifiée\",\n  \"description\": \"Description modifiée\",\n  \"adress\": \"Lyon\",\n  \"mail\": \"modif@test.com\",\n  \"categoryId\": 1,\n  \"version\": {{version}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces/{{annonceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces", "{{annonceId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Règles métier",
+      "item": [
+        {
+          "name": "PATCH status → PUBLISHED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Statut PUBLISHED', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.status).to.eql('PUBLISHED');",
+                  "});",
+                  "try {",
+                  "  var json = pm.response.json();",
+                  "  if (json.version !== undefined) {",
+                  "    pm.environment.set('version', json.version);",
+                  "  }",
+                  "} catch(e) {}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PUBLISHED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces/{{annonceId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces", "{{annonceId}}", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT sur PUBLISHED → 409 (non modifiable)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409 — conflit métier', function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});",
+                  "pm.test('Message de conflit', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.error).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Tentative modification\",\n  \"description\": \"Ne devrait pas marcher\",\n  \"adress\": \"Paris\",\n  \"mail\": \"test@test.com\",\n  \"categoryId\": 1,\n  \"version\": {{version}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces/{{annonceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces", "{{annonceId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE sans archivage → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409 — archivage requis', function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces/{{annonceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces", "{{annonceId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH status → ARCHIVED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Statut ARCHIVED', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.status).to.eql('ARCHIVED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ARCHIVED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces/{{annonceId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces", "{{annonceId}}", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE après archivage → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 ou 204', function () {",
+                  "  pm.expect([200, 204]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces/{{annonceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces", "{{annonceId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [
