@@ -132,6 +132,21 @@ Configurer la base côté runtime dans :
 
 src/main/resources/META-INF/persistence.xml
 
+
+### Initialiser PostgreSQL rapidement
+
+Un script SQL prêt pour la prod est fourni ici :
+
+- `src/main/resources/sql/init-sql.sql`
+
+⚠️ La DB et les credentials doivent correspondre à persistence.xml pour que ça marche (adapter selon votre configuration)
+
+Exemple d'import (c'est un exemple, adapter selon votre configuration) :
+```bash
+psql -U tpavancee -d MasterAnnonce -f src/main/resources/sql/init-sql.sql
+```
+
+
 # 6) Lancer le projet
 6.1 Build
 mvn clean package
