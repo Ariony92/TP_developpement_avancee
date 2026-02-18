@@ -1,13 +1,13 @@
 {
   "info": {
     "_postman_id": "b9f7e5e2-9a7b-4b3e-9f7e-123456789abc",
-    "name": "TP3 MasterAnnonce API",
-    "description": "Collection Postman pour tester l'API sécurisée avec token Bearer",
+    "name": "TP3 MasterAnnonce API (CORRIGÉ)",
+    "description": "Collection Postman corrigée pour tester l'API (login + token + annonces + archive avant delete). Utilise des variables d'Environment: baseUrl, token, annonceId, version.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "LOGIN",
+      "name": "1 - LOGIN (stocke token dans Environment)",
       "event": [
         {
           "listen": "test",
@@ -18,7 +18,10 @@
               "  pm.response.to.have.status(200);",
               "});",
               "const json = pm.response.json();",
-              "pm.collectionVariables.set('token', json.token);"
+              "pm.environment.set('token', json.token);",
+              "// optionnel: nettoyer des variables si tu relances un scénario",
+              "// pm.environment.unset('annonceId');",
+              "// pm.environment.unset('version');"
             ]
           }
         }
@@ -26,14 +29,8 @@
       "request": {
         "method": "POST",
         "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Accept",
-            "value": "application/json"
-          }
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
         ],
         "body": {
           "mode": "raw",
@@ -41,19 +38,14 @@
         },
         "url": {
           "raw": "{{baseUrl}}/api/login",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "login"
-          ]
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "login" ]
         }
       },
       "response": []
     },
     {
-      "name": "GET annonces (SANS TOKEN) -> doit faire 401",
+      "name": "2 - GET annonces (SANS TOKEN) -> doit faire 401",
       "event": [
         {
           "listen": "test",
@@ -70,26 +62,18 @@
       "request": {
         "method": "GET",
         "header": [
-          {
-            "key": "Accept",
-            "value": "application/json"
-          }
+          { "key": "Accept", "value": "application/json" }
         ],
         "url": {
           "raw": "{{baseUrl}}/api/annonces",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "annonces"
-          ]
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "annonces" ]
         }
       },
       "response": []
     },
     {
-      "name": "GET annonces (AVEC TOKEN) -> doit faire 200",
+      "name": "3 - GET annonces (AVEC TOKEN) -> doit faire 200",
       "event": [
         {
           "listen": "test",
@@ -106,26 +90,15 @@
       "request": {
         "method": "GET",
         "header": [
-          {
-            "key": "Accept",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/annonces?page=1&size=10",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "annonces"
-          ],
+          "raw": "{{baseUrl}}/api/annonces?page=0&size=10",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "annonces" ],
           "query": [
-            { "key": "page", "value": "1" },
+            { "key": "page", "value": "0" },
             { "key": "size", "value": "10" }
           ]
         }
@@ -133,64 +106,110 @@
       "response": []
     },
     {
-      "name": "CREATE annonce (AVEC TOKEN)",
+      "name": "4 - CREATE annonce (AVEC TOKEN) -> stocke annonceId + version",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ou 201', function () {",
+              "  pm.expect([200, 201]).to.include(pm.response.code);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.environment.set('annonceId', json.id);",
+              "pm.environment.set('version', (json.version !== undefined && json.version !== null) ? json.version : 0);"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
         "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Accept",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"title\": \"Annonce test\",\n  \"description\": \"Description test\",\n  \"adress\": \"Paris\",\n  \"mail\": \"test@test.com\",\n  \"categoryId\": 1\n}"
+          "raw": "{\n  \"title\": \"Annonce test\",\n  \"description\": \"Description test\",\n  \"adress\": \"Paris\",\n  \"mail\": \"test@test.com\",\n  \"categoryId\": 1,\n  \"authorId\": 2,\n  \"version\": 0\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/annonces",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "annonces"
-          ]
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "annonces" ]
         }
       },
       "response": []
     },
     {
-      "name": "DELETE annonce (id=1) (AVEC TOKEN)",
+      "name": "5 - PATCH status -> ARCHIVED (obligatoire avant DELETE)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ou 204', function () {",
+              "  pm.expect([200, 204]).to.include(pm.response.code);",
+              "});",
+              "// Si l'API renvoie l'annonce, on peut MAJ la version",
+              "try {",
+              "  const json = pm.response.json();",
+              "  if (json && json.version !== undefined && json.version !== null) {",
+              "    pm.environment.set('version', json.version);",
+              "  }",
+              "} catch (e) {",
+              "  // rien",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"ARCHIVED\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/annonces/{{annonceId}}/status",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "annonces", "{{annonceId}}", "status" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "6 - DELETE annonce (AVEC TOKEN) -> utilise annonceId",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ou 204', function () {",
+              "  pm.expect([200, 204]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "DELETE",
         "header": [
-          {
-            "key": "Accept",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/annonces/1",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "annonces",
-            "1"
-          ]
+          "raw": "{{baseUrl}}/api/annonces/{{annonceId}}",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "annonces", "{{annonceId}}" ]
         }
       },
       "response": []
@@ -200,10 +219,6 @@
     {
       "key": "baseUrl",
       "value": "http://localhost:8080/dev_avancee_war"
-    },
-    {
-      "key": "token",
-      "value": ""
     }
   ]
 }
