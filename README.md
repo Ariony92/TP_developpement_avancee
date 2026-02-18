@@ -139,7 +139,7 @@ mvn clean package
 mvn tomcat7:run
 Base URL locale :
 
-http://localhost:8080/tp_avancee/api
+http://localhost:8080/dev_avancee_war/api
 
 
 # 7) Lancer les tests
@@ -250,3 +250,63 @@ src/test/resources/sql/test-dataset.sql
 
 Ils permettent de créer les données de test.
 
+## 13) Flow d’authentification
+
+1. L’utilisateur appelle POST /api/login avec username/password
+
+2. AuthResource appelle JAAS via LoginContext
+
+3. DbLoginModule vérifie les credentials en base
+
+4. Si succès :
+   → création d’un Subject
+   → génération d’un token
+
+5. Le token est retourné au client
+
+6. Pour chaque requête protégée :
+
+   client → Authorization: Bearer token
+
+7. BearerAuthFilter :
+
+   → appelle JAAS TokenLoginModule
+
+8. TokenLoginModule :
+
+   → valide le token
+   → reconstruit le Subject
+
+9. Le Service récupère l’utilisateur courant
+
+→ et applique les règles métier
+
+
+## Choix techniques
+
+Jersey :
+
+→ implémentation officielle JAX-RS
+→ facile à intégrer avec Tomcat
+
+JAAS :
+
+→ solution standard Java
+→ permet authentification stateless
+
+H2 :
+
+→ rapide
+→ pas besoin de serveur
+→ idéal pour tests
+
+
+## Gestion des codes HTTP
+
+400 → validation
+
+404 → ressource non trouvée
+
+409 → conflit métier
+
+500 → erreur interne
