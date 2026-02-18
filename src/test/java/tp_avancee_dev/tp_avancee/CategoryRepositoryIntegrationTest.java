@@ -33,7 +33,7 @@ class CategoryRepositoryIntegrationTest {
     void setUp() {
         em = emf.createEntityManager();
         repository = new CategoryRepository();
-        seedData();
+        TestDataLoader.loadDefaultDataset(em);
     }
 
     @AfterEach
@@ -78,26 +78,8 @@ class CategoryRepositoryIntegrationTest {
         List<Category> page2 = repository.findAllPaginated(em, 2, 2);
 
         assertEquals(2, page1.size());
-        assertEquals(1, page2.size());
+        assertEquals(2, page2.size());
         assertNotEquals(page1.get(0).getId(), page2.get(0).getId());
     }
 
-    private void seedData() {
-        em.getTransaction().begin();
-        em.createQuery("DELETE FROM Annonce").executeUpdate();
-        em.createQuery("DELETE FROM Category").executeUpdate();
-
-        em.persist(buildCategory("Sport"));
-        em.persist(buildCategory("Maison"));
-        em.persist(buildCategory("Sport automobile"));
-
-        em.getTransaction().commit();
-        em.clear();
-    }
-
-    private Category buildCategory(String label) {
-        Category category = new Category();
-        category.setLabel(label);
-        return category;
-    }
 }

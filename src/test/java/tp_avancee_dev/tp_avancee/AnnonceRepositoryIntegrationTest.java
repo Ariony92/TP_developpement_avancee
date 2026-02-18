@@ -33,7 +33,7 @@ class AnnonceRepositoryIntegrationTest {
     void setUp() {
         em = emf.createEntityManager();
         repository = new AnnonceRepository();
-        seedData();
+        TestDataLoader.loadDefaultDataset(em);
     }
 
     @AfterEach
@@ -140,47 +140,5 @@ class AnnonceRepositoryIntegrationTest {
         ));
     }
 
-    private void seedData() {
-        em.getTransaction().begin();
 
-        em.createQuery("DELETE FROM Annonce").executeUpdate();
-        em.createQuery("DELETE FROM Category").executeUpdate();
-        em.createQuery("DELETE FROM User").executeUpdate();
-
-        User user = new User();
-        user.setUsername("alice");
-        user.setEmail("alice@test.com");
-        user.setPassword("secret");
-        em.persist(user);
-
-        Category sport = new Category();
-        sport.setLabel("Sport");
-        em.persist(sport);
-
-        Category maison = new Category();
-        maison.setLabel("Maison");
-        em.persist(maison);
-
-        em.persist(buildAnnonce("Velo route", "Super velo carbone", "Lille", "velo1@test.com", user, sport, Status.PUBLISHED));
-        em.persist(buildAnnonce("Velo ville", "Velo pratique", "Paris", "velo2@test.com", user, sport, Status.DRAFT));
-        em.persist(buildAnnonce("Canape", "Canape 3 places", "Lyon", "canape@test.com", user, maison, Status.ARCHIVED));
-        em.persist(buildAnnonce("Tapis velo", "Accessoire fitness", "Nantes", "fitness@test.com", user, sport, Status.PUBLISHED));
-
-        em.getTransaction().commit();
-        em.clear();
-    }
-
-    private Annonce buildAnnonce(String title,
-                                 String description,
-                                 String address,
-                                 String mail,
-                                 User author,
-                                 Category category,
-                                 Status status) {
-        Annonce annonce = new Annonce(title, description, address, mail);
-        annonce.setAuthor(author);
-        annonce.setCategory(category);
-        annonce.setStatus(status);
-        return annonce;
-    }
 }

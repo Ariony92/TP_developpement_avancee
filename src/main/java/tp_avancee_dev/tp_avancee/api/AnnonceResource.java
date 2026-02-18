@@ -1,23 +1,40 @@
 package tp_avancee_dev.tp_avancee.api;
 
 import jakarta.validation.Valid;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.PATCH;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
+import jakarta.ws.rs.container.ContainerRequestContext;
 import tp_avancee_dev.tp_avancee.api.dto.AnnonceRequestDto;
 import tp_avancee_dev.tp_avancee.api.dto.AnnonceResponseDto;
 import tp_avancee_dev.tp_avancee.api.dto.PagedResponseDto;
 import tp_avancee_dev.tp_avancee.api.dto.StatusPatchDto;
+import tp_avancee_dev.tp_avancee.api.filter.Secured;
+import tp_avancee_dev.tp_avancee.api.log.StructuredLogger;
 import tp_avancee_dev.tp_avancee.api.mapper.AnnonceMapper;
 import tp_avancee_dev.tp_avancee.model.Annonce;
 import tp_avancee_dev.tp_avancee.service.AnnonceService;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+@Secured
 @Path("/annonces")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -34,15 +51,19 @@ public class AnnonceResource {
     }
 
     @GET
-    public Response listAnnonces(@DefaultValue("1") @QueryParam("page") int page, @DefaultValue("10") @QueryParam("size") int size, @QueryParam("keyword") String keyword) {
+    public Response listAnnonces(@DefaultValue("1") @QueryParam("page") int page,
+                                 @DefaultValue("10") @QueryParam("size") int size,
+                                 @QueryParam("keyword") String keyword) {
 
         List<Annonce> annonces = (keyword == null || keyword.isBlank())
                 ? annonceService.listAnnoncesPaginated(page, size)
                 : annonceService.searchAnnonces(keyword, page, size);
 
-        List<AnnonceResponseDto> items = annonces.stream().map(AnnonceMapper::toBasicDto)
+        List<AnnonceResponseDto> items = annonces.stream()
+                .map(AnnonceMapper::toBasicDto)
                 .collect(Collectors.toList());
 
+        StructuredLogger.info("api.annonces.list", Map.of("page", page, "size", size, "count", items.size()));
         return Response.ok(new PagedResponseDto<>(Math.max(page, 1), Math.max(size, 1), items.size(), items)).build();
     }
 
@@ -51,14 +72,20 @@ public class AnnonceResource {
     public Response getAnnonceById(@PathParam("id") Long id) {
         Annonce annonce = annonceService.getAnnonceById(id);
         if (annonce == null) {
+            StructuredLogger.info("api.annonces.detail.not_found", Map.of("annonceId", id));
             throw new NotFoundException("Annonce introuvable : id=" + id);
         }
         return Response.ok(AnnonceMapper.toDetailedDto(annonce)).build();
     }
 
     @POST
-    public Response createAnnonce(@Valid AnnonceRequestDto request, @Context UriInfo uriInfo) {
-        if (request.getAuthorId() == null) {
+    public Response createAnnonce(@Valid AnnonceRequestDto request,
+                                  @Context UriInfo uriInfo,
+                                  @Context ContainerRequestContext requestContext) {
+
+        Long authUserId = extractAuthUserId(requestContext);
+        Long authorId = authUserId != null ? authUserId : request.getAuthorId();
+        if (authorId == null) {
             throw new BadRequestException("authorId is required");
         }
 
@@ -67,42 +94,69 @@ public class AnnonceResource {
                 request.getDescription(),
                 request.getAdress(),
                 request.getMail(),
-                request.getAuthorId(),
+                authorId,
                 request.getCategoryId()
         );
 
         URI location = uriInfo.getAbsolutePathBuilder().path(String.valueOf(created.getId())).build();
-        return Response.created(location).entity(AnnonceMapper.toBasicDto(created)).build();
+        StructuredLogger.info("api.annonces.create", Map.of("annonceId", created.getId(), "authorId", authorId));
+        return Response.created(location)
+                .entity(AnnonceMapper.toBasicDto(created))
+                .build();
     }
 
     @PUT
     @Path("/{id}")
-    public Response updateAnnonce(@PathParam("id") Long id, @Valid AnnonceRequestDto request) {
+    public Response updateAnnonce(@PathParam("id") Long id,
+                                  @Valid AnnonceRequestDto request,
+                                  @Context ContainerRequestContext requestContext) {
+        Long authUserId = extractAuthUserId(requestContext);
+
         Annonce updated = annonceService.updateAnnonce(
                 id,
                 request.getTitle(),
                 request.getDescription(),
                 request.getAdress(),
                 request.getMail(),
-                request.getCategoryId()
+                request.getCategoryId(),
+                authUserId,
+                request.getVersion()
         );
+        StructuredLogger.info("api.annonces.update", Map.of("annonceId", id, "userId", authUserId));
         return Response.ok(AnnonceMapper.toBasicDto(updated)).build();
     }
 
     @DELETE
     @Path("/{id}")
-    public Response deleteAnnonce(@PathParam("id") Long id) {
-        boolean deleted = annonceService.deleteAnnonce(id);
+    public Response deleteAnnonce(@PathParam("id") Long id,
+                                  @Context ContainerRequestContext requestContext) {
+        Long authUserId = extractAuthUserId(requestContext);
+
+        boolean deleted = annonceService.deleteAnnonce(id, authUserId);
         if (!deleted) {
             throw new NotFoundException("Annonce introuvable : id=" + id);
         }
+        StructuredLogger.info("api.annonces.delete", Map.of("annonceId", id, "userId", authUserId));
         return Response.noContent().build();
     }
 
     @PATCH
     @Path("/{id}/status")
-    public Response patchAnnonceStatus(@PathParam("id") Long id, @Valid StatusPatchDto request) {
-        Annonce updated = annonceService.changeStatusTo(id, request.getStatus());
+    public Response patchAnnonceStatus(@PathParam("id") Long id,
+                                       @Valid StatusPatchDto request,
+                                       @Context ContainerRequestContext requestContext) {
+        Long authUserId = extractAuthUserId(requestContext);
+
+        Annonce updated = annonceService.changeStatusTo(id, request.getStatus(), authUserId);
+        StructuredLogger.info("api.annonces.status.patch", Map.of("annonceId", id, "userId", authUserId, "status", request.getStatus()));
         return Response.ok(AnnonceMapper.toBasicDto(updated)).build();
+    }
+
+    private Long extractAuthUserId(ContainerRequestContext requestContext) {
+        Object value = requestContext.getProperty("authUserId");
+        if (value instanceof Long) {
+            return (Long) value;
+        }
+        return null;
     }
 }

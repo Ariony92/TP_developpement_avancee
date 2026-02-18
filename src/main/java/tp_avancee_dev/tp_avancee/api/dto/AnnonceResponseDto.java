@@ -6,6 +6,7 @@ import java.time.Instant;
 
 public class AnnonceResponseDto {
     private Long id;
+    private Long version;
     private String title;
     private String description;
     private String adress;
@@ -23,6 +24,14 @@ public class AnnonceResponseDto {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 
     public String getTitle() {

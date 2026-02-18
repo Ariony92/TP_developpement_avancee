@@ -11,6 +11,7 @@ public final class AnnonceMapper {
     public static AnnonceResponseDto toBasicDto(Annonce annonce) {
         AnnonceResponseDto dto = new AnnonceResponseDto();
         dto.setId(annonce.getId());
+        dto.setVersion(annonce.getVersion());
         dto.setTitle(annonce.getTitle());
         dto.setDescription(annonce.getDescription());
         dto.setAdress(annonce.getAdress());

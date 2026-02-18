@@ -28,6 +28,8 @@ public class AnnonceRequestDto {
     @NotNull(message = "categoryId is required")
     private Long categoryId;
 
+    private Long version;
+
     public String getTitle() {
         return title;
     }
@@ -74,5 +76,13 @@ public class AnnonceRequestDto {
 
     public void setCategoryId(Long categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }

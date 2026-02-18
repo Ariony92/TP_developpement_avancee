@@ -8,9 +8,14 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import tp_avancee_dev.tp_avancee.api.exceptions.BusinessConflictException;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -65,5 +70,20 @@ public class ApiResource {
         }
 
         return Map.of("message", "Codes supportés: 400, 404, 409, 500");
+    }
+
+    @GET
+    @Path("openapi")
+    @Produces({"application/yaml", MediaType.TEXT_PLAIN})
+    public Response openApiSpec() {
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream("openapi.yaml")) {
+            if (input == null) {
+                throw new NotFoundException("Specification OpenAPI introuvable");
+            }
+            String yaml = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            return Response.ok(yaml, "application/yaml").build();
+        } catch (IOException e) {
+            throw new WebApplicationException("Impossible de lire la specification OpenAPI", e, Response.Status.INTERNAL_SERVER_ERROR);
+        }
     }
 }

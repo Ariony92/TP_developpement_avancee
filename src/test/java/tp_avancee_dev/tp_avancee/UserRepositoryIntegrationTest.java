@@ -33,7 +33,7 @@ class UserRepositoryIntegrationTest {
     void setUp() {
         em = emf.createEntityManager();
         repository = new UserRepository();
-        seedData();
+        TestDataLoader.loadDefaultDataset(em);
     }
 
     @AfterEach
@@ -84,7 +84,8 @@ class UserRepositoryIntegrationTest {
         List<User> page2 = repository.findAllPaginated(em, 2, 2);
 
         assertEquals(2, page1.size());
-        assertEquals(1, page2.size());
+        assertEquals(2, page2.size());
+
 
         Set<Long> idsPage1 = new HashSet<>();
         for (User u : page1) idsPage1.add(u.getId());
@@ -92,26 +93,4 @@ class UserRepositoryIntegrationTest {
         assertTrue(page2.stream().noneMatch(u -> idsPage1.contains(u.getId())));
     }
 
-    private void seedData() {
-        em.getTransaction().begin();
-
-        em.createQuery("DELETE FROM Annonce").executeUpdate();
-        em.createQuery("DELETE FROM Category").executeUpdate();
-        em.createQuery("DELETE FROM User").executeUpdate();
-
-        em.persist(buildUser("alice", "alice@test.com"));
-        em.persist(buildUser("bob", "bob@test.com"));
-        em.persist(buildUser("alicia", "alicia@test.com"));
-
-        em.getTransaction().commit();
-        em.clear();
-    }
-
-    private User buildUser(String username, String email) {
-        User user = new User();
-        user.setUsername(username);
-        user.setEmail(email);
-        user.setPassword("secret");
-        return user;
-    }
 }
