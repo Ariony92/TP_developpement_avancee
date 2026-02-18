@@ -1,4 +1,8 @@
-# TP Développement Avancé — Backend REST Java (JAX-RS / JPA / JAAS)
+
+
+# ⚠️ Veuillez vous connecter à une base de donnée afin de faire fonctionner le projet !
+
+## TP Développement Avancé — Backend REST Java (JAX-RS / JPA / JAAS)
 
 ## 1) Objectif du projet
 
