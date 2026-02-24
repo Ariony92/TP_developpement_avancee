@@ -1,7 +1,17 @@
 package tp_avancee_dev.tp_avancee.model;
 
-
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -12,8 +22,8 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "annonce")
-
 public class Annonce {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -64,32 +74,11 @@ public class Annonce {
 
     public Annonce() {}
 
-    public Annonce(String title, String description, String adress, String mail) {
-        this.title = title;
-        this.description = description;
-        this.adress = adress;
-        this.mail = mail;
-    }
-
-    public Annonce(Long id, String title, String description, String adress, String mail, Instant date) {
-        this.id = id;
-        this.title = title;
-        this.description = description;
-        this.adress = adress;
-        this.mail = mail;
-        this.date = date;
-    }
-
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public Long getVersion() {
-        return version;
-    }
-
-    public void setVersion(Long version) {
-        this.version = version;
-    }
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }

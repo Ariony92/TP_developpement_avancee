@@ -1,0 +1,60 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/MasterAnnonce
+    username: tpavancee
+    password: tpavancee
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+  sql:
+    init:
+      mode: never
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: MasterAnnonce
+    description: API REST de gestion d'annonces — TP Dev Avancée #4
+    version: 1.0.0
+    java: ${java.version}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
+app:
+  jwt:
+    secret: Y0VyWXNlY3JldEtleUZvckpXVFNpZ25pbmdUaGlzSXNMb25nRW5vdWdoMTIz
+    expiration-ms: 3600000
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{correlationId}] %-5level %logger{36} - %msg%n"
+  level:
+    tp_avancee_dev.tp_avancee: INFO
+    tp_avancee_dev.tp_avancee.aspect: DEBUG

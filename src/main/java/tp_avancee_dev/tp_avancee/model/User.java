@@ -1,6 +1,13 @@
 package tp_avancee_dev.tp_avancee.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -34,6 +41,11 @@ public class User {
     @Column(nullable = false, length = 255)
     private String password;
 
+    @NotBlank
+    @Size(max = 32)
+    @Column(nullable = false, length = 32)
+    private String role;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -55,9 +67,11 @@ public class User {
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
 
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
+
     public Instant getCreatedAt() { return createdAt; }
 
     public List<Annonce> getAnnonces() { return annonces; }
     public void setAnnonces(List<Annonce> annonces) { this.annonces = annonces; }
-
 }

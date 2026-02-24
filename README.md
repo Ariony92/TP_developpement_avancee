@@ -1,33 +1,22 @@
+poisson
 
+# MasterAnnonce — Spring Boot
 
-# ⚠️ Veuillez vous connecter à une base de donnée afin de faire fonctionner le projet !
-
-# URL pour tester l'API
-
-Une fois le projet lancé :
-
-http://localhost:8080/dev_avancee_war/api
-
-
-Endpoint de login :
-
-POST http://localhost:8080/dev_avancee_war/api/login
-
-
-
-## TP Développement Avancé — Backend REST Java (JAX-RS / JPA / JAAS)
+## TP Développement Avancé #4 — Migration vers Spring Boot
 
 ## 1) Objectif du projet
 
-Ce projet implémente une API REST de gestion d'annonces avec :
+Ce projet est la migration de l'application MasterAnnonce (TP#3 JAX-RS / JAAS) vers une architecture moderne basée sur **Spring Boot 3.5.5**.
 
-- exposition HTTP JSON via **JAX-RS (Jersey)** ;
-- persistance via **JPA / Hibernate** ;
-- sécurité **stateless** avec **JAAS + Bearer token** ;
-- gestion centralisée des erreurs ;
-- tests unitaires et d'intégration.
+L'API REST gère des annonces avec :
 
-L'application respecte une architecture en couches et ne dépend pas de Spring.
+- exposition HTTP JSON via **Spring MVC** (`@RestController`) ;
+- persistance via **Spring Data JPA / Hibernate** ;
+- mapping DTO/entité via **MapStruct** (génération de code, pas de mapping manuel) ;
+- recherche multi-critères via **JPA Specifications + introspection** ;
+- gestion centralisée des erreurs (`@RestControllerAdvice`) ;
+- sécurité **stateless** via **Spring Security** (JWT préparé en Partie II) ;
+- pagination, tri, et validation des champs de tri par réflexion.
 
 ---
 
@@ -36,292 +25,130 @@ L'application respecte une architecture en couches et ne dépend pas de Spring.
 ```text
 Client (Postman / front)
         ↓ HTTP JSON
-API REST (JAX-RS Resources + Filter)
+Controller (@RestController)
         ↓
-Services (règles métier + transactions)
+Service (règles métier + @Transactional)
         ↓
-Repositories JPA (accès DB)
+Repository (Spring Data JPA)
         ↓
 Entités JPA (User / Category / Annonce)
         ↓
-PostgreSQL (runtime) / H2 (tests)
+PostgreSQL
 ```
 
-## 2.1 Couche API (JAX-RS)
-ApiResource : endpoints de base (helloWorld, params, simulation d'erreurs, openapi).
+### Couche Controller
+- `AnnonceController` : CRUD REST + PATCH statut + endpoint d'introspection `/meta/filterable-fields`
 
-AuthResource : endpoint /api/login.
+### Couche Service
+- `AnnonceService` : logique métier, conversions via MapStruct, règles de transition de statut
 
-AnnonceResource : CRUD REST + patch statut.
+### Couche Repository
+- `AnnonceRepository` (+ `JpaSpecificationExecutor`), `UserRepository`, `CategoryRepository`
+- Requêtes dynamiques via `Specification`
 
-BearerAuthFilter : contrôle du token sur endpoints protégés (@Secured).
+### Mappers (MapStruct)
+- `AnnonceMapper`, `UserMapper`, `CategoryMapper`
+- Aucun `new DTO()` dans les controllers/services
 
-## 2.2 Couche Service
-AnnonceService : logique métier + transactions (begin/commit/rollback).
+### Specifications + Introspection
+- `AnnonceSpecification` : filtres dynamiques (status, categoryId, authorId, q, fromDate, toDate)
+- Recherche LIKE automatique sur tous les champs String détectés par réflexion
+- Validation des champs de tri via `Annonce.class.getDeclaredFields()`
 
-AuthService : vérification des identifiants.
+---
 
-ApiTokenService : génération/validation des tokens mémoire.
+## 3) Endpoints
 
-## 2.3 Couche Repository
-AnnonceRepository, UserRepository, CategoryRepository.
+| Verbe   | URI                                  | Description                              |
+|---------|--------------------------------------|------------------------------------------|
+| GET     | `/api/annonces`                      | Liste paginée + filtres + tri            |
+| GET     | `/api/annonces/{id}`                 | Détail d'une annonce                     |
+| POST    | `/api/annonces`                      | Création                                 |
+| PUT     | `/api/annonces/{id}`                 | Mise à jour complète                     |
+| DELETE  | `/api/annonces/{id}`                 | Suppression (si ARCHIVED)                |
+| PATCH   | `/api/annonces/{id}/status`          | Changement de statut                     |
+| GET     | `/api/annonces/meta/filterable-fields` | Champs filtrables (introspection)      |
 
-Requêtes JPA/JPQL (CRUD, pagination, recherche, filtres).
+### Paramètres de recherche (GET /api/annonces)
 
-## 2.4 Sécurité
-JAAS login/password : DbLoginModule.
+| Paramètre   | Type    | Description                                  |
+|--------------|---------|----------------------------------------------|
+| `q`          | String  | Mot-clé (LIKE sur title, description, etc.)  |
+| `status`     | String  | Filtre par statut (DRAFT, PUBLISHED, ARCHIVED) |
+| `categoryId` | Long    | Filtre par catégorie                         |
+| `authorId`   | Long    | Filtre par auteur                            |
+| `fromDate`   | Instant | Date de début (ISO 8601)                     |
+| `toDate`     | Instant | Date de fin (ISO 8601)                       |
+| `page`       | int     | Numéro de page (défaut : 0)                  |
+| `size`       | int     | Taille de page (défaut : 10)                 |
+| `sort`       | String  | Tri (ex: `date,desc`)                        |
 
-JAAS token : BearerTokenLoginModule.
+---
 
-Principals : UserPrincipal, RolePrincipal.
+## 4) Règles métier
 
-Configuration : src/main/resources/jaas.conf.
+- Seul l'auteur (ou un admin) peut modifier/supprimer une annonce
+- Une annonce **PUBLISHED** ne peut plus être modifiée
+- Une annonce doit être **ARCHIVED** avant suppression
+- Une annonce **ARCHIVED** ne peut pas repasser en **PUBLISHED**
+- Gestion de concurrence optimiste via `@Version`
 
-## 2.5 Validation et erreurs
-Bean Validation sur DTO (@NotBlank, @NotNull, @Email, ...).
+---
 
-@Valid dans les ressources REST.
+## 5) Stack technique
 
-Mappers d'erreurs JSON normalisés (ApiErrorResponse).
+| Composant        | Technologie                    |
+|------------------|--------------------------------|
+| Framework        | Spring Boot 3.5.5              |
+| API REST         | Spring MVC                     |
+| Persistance      | Spring Data JPA / Hibernate    |
+| Base de données  | PostgreSQL                     |
+| Mapping DTO      | MapStruct 1.6.3                |
+| Validation       | Bean Validation (Jakarta)      |
+| Sécurité         | Spring Security (stateless)    |
+| AOP              | Spring AOP                     |
+| Monitoring       | Spring Actuator                |
+| Tests            | JUnit 5 / Mockito / H2         |
+| Build            | Maven                          |
+| Java             | 17                             |
 
-# 3) Endpoints principaux
-Auth
-POST /api/login : authentification, retourne un Bearer token.
+---
 
-API de base
-GET /api/helloWorld
+## 6) Prérequis
 
-GET /api/params?name=...&age=...
+- Java 17+
+- Maven 3.8+
+- PostgreSQL en local
 
-GET /api/params/{id}
+### Configuration de la base
 
-GET /api/errors/{code}
+```sql
+CREATE DATABASE "MasterAnnonce";
+CREATE USER tpavancee WITH PASSWORD 'tpavancee';
+GRANT ALL PRIVILEGES ON DATABASE "MasterAnnonce" TO tpavancee;
+```
 
-GET /api/openapi
+---
 
-Annonces (protégés)
-GET /api/annonces
+## 7) Lancer le projet
 
-GET /api/annonces/{id}
-
-POST /api/annonces
-
-PUT /api/annonces/{id}
-
-DELETE /api/annonces/{id}
-
-PATCH /api/annonces/{id}/status
-
-# 4) Règles métier implémentées
-Seul l'auteur (ou un admin) peut modifier/supprimer une annonce.
-
-Une annonce PUBLISHED ne peut plus être modifiée.
-
-Une annonce doit être ARCHIVED avant suppression.
-
-Gestion de concurrence optimiste via @Version.
-
-# 5) Prérequis
-Java 11+
-
-Maven
-
-PostgreSQL en local
-
-Configurer la base côté runtime dans :
-
-src/main/resources/META-INF/persistence.xml
-
-
-### Initialiser PostgreSQL rapidement
-
-Un script SQL prêt pour la prod est fourni ici :
-
-- `src/main/resources/sql/init-sql.sql`
-
-⚠️ La DB et les credentials doivent correspondre à persistence.xml pour que ça marche (adapter selon votre configuration)
-
-Exemple d'import (c'est un exemple, adapter selon votre configuration) :
 ```bash
-psql -U tpavancee -d MasterAnnonce -f src/main/resources/sql/init-sql.sql
+mvn clean package
+mvn spring-boot:run
 ```
 
-
-# 6) Lancer le projet
-6.1 Build
-mvn clean package
-6.2 Lancer l'API (Tomcat Maven)
-mvn tomcat7:run
-Base URL locale :
-
-http://localhost:8080/dev_avancee_war/api
-
-
-# 7) Lancer les tests
-Tous les tests unitaires actifs
-mvn test
-Vérification Maven complète
-mvn verify
-Profils disponibles
-mvn -Punit-tests test
-mvn -Pintegration-tests verify
-
-# 8) Organisation des tests
-src/test/java/tp_avancee_dev/tp_avancee/
-  - ApiErrorMappersUnitTest.java
-  - DbLoginModuleTest.java
-  - BearerTokenLoginModuleTest.java
-  - AnnonceServiceTest.java
-  - ApiRestIT.java
-  - AnnonceRepositoryIntegrationTest.java
-  - UserRepositoryIntegrationTest.java
-  - CategoryRepositoryIntegrationTest.java
-  - AnnonceServiceBusinessIntegrationTest.java
-
-src/test/resources/
-  META-INF/persistence.xml
-  sql/test-dataset.sql
-
-
-# 9)Problèmes rencontrés et solutions apportées
-9.1 Transactions placées au mauvais niveau
-Problème : les transactions étaient initialement gérées trop bas dans la couche d'accès aux données, ce qui mélangeait responsabilités techniques et métier.
-
-
-Solution : transactions déplacées dans la couche Service uniquement, les repositories reçoivent un EntityManager sans ouvrir/fermer de transaction.
-
-9.2 Erreurs Lazy Loading au moment du mapping DTO
-Problème : certaines lectures sur author/category déclenchaient des erreurs après fermeture de l'EntityManager.
-
-
-
-Solution : ajout d'une méthode repository dédiée avec JOIN FETCH pour charger explicitement les relations nécessaires au détail.
-
-9.3 Endpoint protégé qui répondait 401 malgré token valide
-Problème : le filtre lisait le header Authorization mais le contexte de sécurité n'était pas systématiquement propagé.
-
-
-Solution : reconstruction complète du Subject via JAAS token + injection explicite du SecurityContext dans la requête.
-
-9.4 Mauvais format de payload de login
-Problème : des tests envoyaient login alors que l'API traitait username, ce qui créait des erreurs de validation.
-
-
-Solution : alignement DTO + alias JSON (@JsonAlias("login")) pour accepter les deux notations et fiabiliser les tests.
-
-9.5 Chaîne de tests cassée après refactor REST
-Problème : des tests historiques Servlet/JSP ne correspondaient plus à l'architecture REST et empêchaient mvn test.
-
-
-Solution : nettoyage des tests obsolètes, recentrage sur les tests API/Service/Sécurité, et déplacement des ressources de test dans src/test/resources.
-
-9.6 Fichier de persistence de test non détecté
-Problème : le fichier de persistence de test n'était pas au chemin Maven standard.
-
-
-Solution : placement de persistence.xml dans src/test/resources/META-INF et dataset SQL dans src/test/resources/sql.
-
-9.7 Gestion des conflits métier incomplète
-Problème : certaines transitions de statut étaient trop permissives.
-
-
-Solution : ajout de contrôles métier explicites dans AnnonceService avec exceptions métier mappées en HTTP 409.
-
-# 10) Documentation API
-Spécification OpenAPI : src/main/resources/openapi.yaml
-
-Exposition brute : GET /api/openapi
-
-Page de consultation : src/main/webapp/swagger.html
-
-
-# 11) Collection Postman
-
-La collection Postman permettant de tester l'API est disponible à la racine du projet :
-
-postman_collection.json
-
-Import dans Postman :
-
-File → Import → sélectionner le fichier
-
-Variable utilisée :
-
-baseUrl = http://localhost:8080/dev_avancee_war
-
-Workflow :
-
-1. Exécuter LOGIN
-2. Le token est enregistré automatiquement
-3. Tester GET /api/annonces
-
-
-
-# 12) Scripts SQL
-
-Scripts présents :
-
-src/test/resources/sql/test-dataset.sql
-
-Ils permettent de créer les données de test.
-
-## 13) Flow d’authentification
-
-1. L’utilisateur appelle POST /api/login avec username/password
-
-2. AuthResource appelle JAAS via LoginContext
-
-3. DbLoginModule vérifie les credentials en base
-
-4. Si succès :
-   → création d’un Subject
-   → génération d’un token
-
-5. Le token est retourné au client
-
-6. Pour chaque requête protégée :
-
-   client → Authorization: Bearer token
-
-7. BearerAuthFilter :
-
-   → appelle JAAS TokenLoginModule
-
-8. TokenLoginModule :
-
-   → valide le token
-   → reconstruit le Subject
-
-9. Le Service récupère l’utilisateur courant
-
-→ et applique les règles métier
-
-
-## Choix techniques
-
-Jersey :
-
-→ implémentation officielle JAX-RS
-→ facile à intégrer avec Tomcat
-
-JAAS :
-
-→ solution standard Java
-→ permet authentification stateless
-
-H2 :
-
-→ rapide
-→ pas besoin de serveur
-→ idéal pour tests
-
-
-## Gestion des codes HTTP
-
-400 → validation
-
-404 → ressource non trouvée
-
-409 → conflit métier
-
-500 → erreur interne
+L'application démarre sur **http://localhost:8080**
+
+---
+
+## 8) Codes HTTP
+
+| Code | Signification           |
+|------|-------------------------|
+| 200  | Succès                  |
+| 201  | Créé                    |
+| 204  | Supprimé                |
+| 400  | Validation / Bad Request|
+| 404  | Ressource non trouvée   |
+| 409  | Conflit métier          |
+| 500  | Erreur interne          |
