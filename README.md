@@ -1,4 +1,4 @@
-TP Développement Avancé #4 — Migration de l'application MasterAnnonce (JAX-RS / JAAS) vers **Spring Boot 3.5.5**.
+## TP Développement Avancé #4 — Migration de l'application MasterAnnonce (JAX-RS / JAAS) vers **Spring Boot 3.5.5**.
 
 ---
 
