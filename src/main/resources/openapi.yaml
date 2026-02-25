@@ -1,0 +1,100 @@
+openapi: 3.0.3
+info:
+  title: TP Dev Avancée API
+  version: 1.0.0
+  description: API REST du TP3 (annonces + authentification token)
+servers:
+  - url: /tp_avancee/api
+paths:
+  /login:
+    post:
+      summary: Authentification stateless
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Token généré
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  expiresIn: { type: integer, example: 3600 }
+        '401':
+          description: Identifiants invalides
+  /annonces:
+    get:
+      summary: Liste paginée d'annonces
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: size
+          schema: { type: integer, minimum: 1, default: 10 }
+      responses:
+        '200': { description: OK }
+        '401': { description: Non authentifié }
+    post:
+      summary: Créer une annonce
+      security:
+        - bearerAuth: []
+      responses:
+        '201': { description: Créée }
+        '400': { description: Payload invalide }
+        '401': { description: Non authentifié }
+  /annonces/{id}:
+    get:
+      summary: Détail annonce
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+        '404': { description: Introuvable }
+    put:
+      summary: Mettre à jour annonce
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: OK }
+        '403': { description: Interdit }
+        '409': { description: Conflit métier }
+    delete:
+      summary: Supprimer annonce
+      security:
+        - bearerAuth: []
+      responses:
+        '204': { description: Supprimée }
+        '403': { description: Interdit }
+        '409': { description: Archivage requis }
+  /annonces/{id}/status:
+    patch:
+      summary: Changer statut annonce
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: OK }
+        '403': { description: Interdit }
+        '409': { description: Conflit }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: UUID

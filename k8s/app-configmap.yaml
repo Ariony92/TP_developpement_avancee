@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres-service:5432/MasterAnnonce"
+  SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+  SPRING_PROFILES_ACTIVE: "default"
+  SERVER_PORT: "8080"

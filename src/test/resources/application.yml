@@ -1,0 +1,31 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+    open-in-view: false
+
+  sql:
+    init:
+      mode: never
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: Y0VyWXNlY3JldEtleUZvckpXVFNpZ25pbmdUaGlzSXNMb25nRW5vdWdoMTIz
+    expiration-ms: 3600000
+    refresh-expiration-ms: 86400000
+  rate-limit:
+    max-requests: 1000
+    window-seconds: 60
+
+logging:
+  level:
+    root: WARN
+    tp_avancee_dev.tp_avancee: WARN
+    org.testcontainers: INFO
