@@ -58,6 +58,10 @@ app:
   jwt:
     secret: Y0VyWXNlY3JldEtleUZvckpXVFNpZ25pbmdUaGlzSXNMb25nRW5vdWdoMTIz
     expiration-ms: 3600000
+    refresh-expiration-ms: 86400000
+  rate-limit:
+    max-requests: 50
+    window-seconds: 60
 
 logging:
   pattern:

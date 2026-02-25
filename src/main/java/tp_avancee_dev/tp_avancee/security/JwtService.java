@@ -22,15 +22,27 @@ public class JwtService {
     @Value("${app.jwt.expiration-ms}")
     private long expirationMs;
 
+    @Value("${app.jwt.refresh-expiration-ms}")
+    private long refreshExpirationMs;
+
     public String generateToken(Long userId, String username, String role) {
+        return buildToken(userId, username, role, expirationMs, "access");
+    }
+
+    public String generateRefreshToken(Long userId, String username, String role) {
+        return buildToken(userId, username, role, refreshExpirationMs, "refresh");
+    }
+
+    private String buildToken(Long userId, String username, String role, long expiration, String tokenType) {
         return Jwts.builder()
                 .subject(username)
                 .claims(Map.of(
                         "userId", userId,
-                        "role", role
+                        "role", role,
+                        "type", tokenType
                 ))
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expirationMs))
+                .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey())
                 .compact();
     }
@@ -47,13 +59,25 @@ public class JwtService {
         return extractClaim(token, claims -> claims.get("role", String.class));
     }
 
+    public String extractTokenType(String token) {
+        return extractClaim(token, claims -> claims.get("type", String.class));
+    }
+
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
+    public boolean isRefreshToken(String token) {
+        return "refresh".equals(extractTokenType(token));
+    }
+
     public long getExpirationMs() {
         return expirationMs;
+    }
+
+    public long getRefreshExpirationMs() {
+        return refreshExpirationMs;
     }
 
     private boolean isTokenExpired(String token) {

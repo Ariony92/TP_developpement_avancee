@@ -1,224 +1,581 @@
 {
   "info": {
-    "_postman_id": "b9f7e5e2-9a7b-4b3e-9f7e-123456789abc",
-    "name": "TP3 MasterAnnonce API (CORRIGÉ)",
-    "description": "Collection Postman corrigée pour tester l'API (login + token + annonces + archive avant delete). Utilise des variables d'Environment: baseUrl, token, annonceId, version.",
+    "_postman_id": "tp4-masterannonce-spring-boot",
+    "name": "TP4 MasterAnnonce API — Spring Boot",
+    "description": "Collection Postman pour tester l'API REST MasterAnnonce (Spring Boot). Couvre : login, refresh token, CRUD annonces, changement de statut, filtres, Actuator, Swagger.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" }
+  ],
   "item": [
     {
-      "name": "1 - LOGIN (stocke token dans Environment)",
-      "event": [
+      "name": "Auth",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status 200', function () {",
-              "  pm.response.to.have.status(200);",
-              "});",
-              "const json = pm.response.json();",
-              "pm.environment.set('token', json.token);",
-              "// optionnel: nettoyer des variables si tu relances un scénario",
-              "// pm.environment.unset('annonceId');",
-              "// pm.environment.unset('version');"
-            ]
+          "name": "1 - LOGIN (user)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('Token présent', () => pm.expect(json.token).to.be.a('string'));",
+                  "pm.test('Refresh token présent', () => pm.expect(json.refreshToken).to.be.a('string'));",
+                  "pm.collectionVariables.set('token', json.token);",
+                  "pm.collectionVariables.set('refreshToken', json.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"alice\",\n  \"password\": \"secret\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
           }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Accept", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"username\": \"alice\",\n  \"password\": \"secret\"\n}"
         },
-        "url": {
-          "raw": "{{baseUrl}}/api/login",
-          "host": [ "{{baseUrl}}" ],
-          "path": [ "api", "login" ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "2 - GET annonces (SANS TOKEN) -> doit faire 401",
-      "event": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status 401', function () {",
-              "  pm.response.to.have.status(401);",
-              "});"
-            ]
+          "name": "2 - LOGIN (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('adminToken', json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
           }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "Accept", "value": "application/json" }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/api/annonces",
-          "host": [ "{{baseUrl}}" ],
-          "path": [ "api", "annonces" ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "3 - GET annonces (AVEC TOKEN) -> doit faire 200",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status 200', function () {",
-              "  pm.response.to.have.status(200);",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "Accept", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}" }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/api/annonces?page=0&size=10",
-          "host": [ "{{baseUrl}}" ],
-          "path": [ "api", "annonces" ],
-          "query": [
-            { "key": "page", "value": "0" },
-            { "key": "size", "value": "10" }
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "4 - CREATE annonce (AVEC TOKEN) -> stocke annonceId + version",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status 200 ou 201', function () {",
-              "  pm.expect([200, 201]).to.include(pm.response.code);",
-              "});",
-              "const json = pm.response.json();",
-              "pm.environment.set('annonceId', json.id);",
-              "pm.environment.set('version', (json.version !== undefined && json.version !== null) ? json.version : 0);"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Accept", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"title\": \"Annonce test\",\n  \"description\": \"Description test\",\n  \"adress\": \"Paris\",\n  \"mail\": \"test@test.com\",\n  \"categoryId\": 1,\n  \"authorId\": 2,\n  \"version\": 0\n}"
         },
-        "url": {
-          "raw": "{{baseUrl}}/api/annonces",
-          "host": [ "{{baseUrl}}" ],
-          "path": [ "api", "annonces" ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "5 - PATCH status -> ARCHIVED (obligatoire avant DELETE)",
-      "event": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status 200 ou 204', function () {",
-              "  pm.expect([200, 204]).to.include(pm.response.code);",
-              "});",
-              "// Si l'API renvoie l'annonce, on peut MAJ la version",
-              "try {",
-              "  const json = pm.response.json();",
-              "  if (json && json.version !== undefined && json.version !== null) {",
-              "    pm.environment.set('version', json.version);",
-              "  }",
-              "} catch (e) {",
-              "  // rien",
-              "}"
-            ]
+          "name": "3 - LOGIN mauvais mot de passe → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"alice\",\n  \"password\": \"wrong\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
           }
-        }
-      ],
-      "request": {
-        "method": "PATCH",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Accept", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"status\": \"ARCHIVED\"\n}"
         },
-        "url": {
-          "raw": "{{baseUrl}}/api/annonces/{{annonceId}}/status",
-          "host": [ "{{baseUrl}}" ],
-          "path": [ "api", "annonces", "{{annonceId}}", "status" ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "6 - DELETE annonce (AVEC TOKEN) -> utilise annonceId",
-      "event": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status 200 ou 204', function () {",
-              "  pm.expect([200, 204]).to.include(pm.response.code);",
-              "});"
-            ]
+          "name": "4 - REFRESH TOKEN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('Nouveau token', () => pm.expect(json.token).to.be.a('string'));",
+                  "pm.collectionVariables.set('token', json.token);",
+                  "pm.collectionVariables.set('refreshToken', json.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "refresh"]
+            }
           }
         }
-      ],
-      "request": {
-        "method": "DELETE",
-        "header": [
-          { "key": "Accept", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}" }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/api/annonces/{{annonceId}}",
-          "host": [ "{{baseUrl}}" ],
-          "path": [ "api", "annonces", "{{annonceId}}" ]
-        }
-      },
-      "response": []
-    }
-  ],
-  "variable": [
+      ]
+    },
     {
-      "key": "baseUrl",
-      "value": "http://localhost:8080/dev_avancee_war"
+      "name": "Annonces — CRUD",
+      "item": [
+        {
+          "name": "5 - GET annonces (public, sans token) → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Page content', () => pm.expect(pm.response.json().content).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces?page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "6 - CREATE annonce (avec token) → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "const json = pm.response.json();",
+                  "pm.test('Status DRAFT', () => pm.expect(json.status).to.eql('DRAFT'));",
+                  "pm.collectionVariables.set('annonceId', json.id);",
+                  "pm.collectionVariables.set('version', json.version || 0);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Appartement T3 lumineux\",\n  \"description\": \"Bel appartement au centre-ville\",\n  \"adress\": \"12 rue de la Paix, Paris\",\n  \"mail\": \"contact@example.com\",\n  \"categoryId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces"]
+            }
+          }
+        },
+        {
+          "name": "7 - GET annonce par ID → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('ID correct', () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get('annonceId'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces/{{annonceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces", "{{annonceId}}"]
+            }
+          }
+        },
+        {
+          "name": "8 - UPDATE annonce (PUT) → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Titre MAJ', () => pm.expect(pm.response.json().title).to.eql('Appartement T4 rénové'));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('version', json.version || 0);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Appartement T4 rénové\",\n  \"description\": \"Bel appartement rénové récemment\",\n  \"adress\": \"15 avenue des Champs, Paris\",\n  \"mail\": \"nouveau@example.com\",\n  \"categoryId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces/{{annonceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces", "{{annonceId}}"]
+            }
+          }
+        },
+        {
+          "name": "9 - PATCH status → PUBLISHED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Statut PUBLISHED', () => pm.expect(pm.response.json().status).to.eql('PUBLISHED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PUBLISHED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces/{{annonceId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces", "{{annonceId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "10 - PATCH status → ARCHIVED (admin only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Statut ARCHIVED', () => pm.expect(pm.response.json().status).to.eql('ARCHIVED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ARCHIVED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces/{{annonceId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces", "{{annonceId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "11 - DELETE annonce → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.expect([200, 204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces/{{annonceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces", "{{annonceId}}"]
+            }
+          }
+        },
+        {
+          "name": "12 - GET annonce supprimée → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces/{{annonceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces", "{{annonceId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Annonces — Filtres & recherche",
+      "item": [
+        {
+          "name": "13 - Recherche par mot-clé (q)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces?q=appartement&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces"],
+              "query": [
+                { "key": "q", "value": "appartement" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "14 - Filtre par statut",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces?status=DRAFT&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces"],
+              "query": [
+                { "key": "status", "value": "DRAFT" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "15 - Champs filtrables (introspection)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Array retourné', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces/meta/filterable-fields",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces", "meta", "filterable-fields"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sécurité",
+      "item": [
+        {
+          "name": "16 - POST sans token → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test\",\n  \"description\": \"Test\",\n  \"adress\": \"Test\",\n  \"mail\": \"test@test.com\",\n  \"categoryId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces"]
+            }
+          }
+        },
+        {
+          "name": "17 - POST avec token invalide → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer invalid.token.here" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test\",\n  \"description\": \"Test\",\n  \"adress\": \"Test\",\n  \"mail\": \"test@test.com\",\n  \"categoryId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/annonces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "annonces"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Actuator & Swagger",
+      "item": [
+        {
+          "name": "18 - Health check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            }
+          }
+        },
+        {
+          "name": "19 - App info",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "info"]
+            }
+          }
+        },
+        {
+          "name": "20 - OpenAPI spec (JSON)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v3/api-docs",
+              "host": ["{{baseUrl}}"],
+              "path": ["v3", "api-docs"]
+            }
+          }
+        }
+      ]
     }
   ]
 }

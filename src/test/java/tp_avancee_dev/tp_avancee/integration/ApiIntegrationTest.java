@@ -108,7 +108,7 @@ class ApiIntegrationTest {
     class Auth {
 
         @Test
-        @DisplayName("POST /api/auth/login — login réussi retourne un token")
+        @DisplayName("POST /api/auth/login — login réussi retourne un token + refreshToken")
         void login_success() throws Exception {
             mockMvc.perform(post("/api/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -117,8 +117,40 @@ class ApiIntegrationTest {
                                     """))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.token").isNotEmpty())
+                    .andExpect(jsonPath("$.refreshToken").isNotEmpty())
                     .andExpect(jsonPath("$.type").value("Bearer"))
                     .andExpect(jsonPath("$.expiresIn").isNumber());
+        }
+
+        @Test
+        @DisplayName("POST /api/auth/refresh — rafraîchit un token valide")
+        void refresh_success() throws Exception {
+            MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"username": "user1", "password": "password123"}
+                                    """))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            JsonNode loginNode = objectMapper.readTree(loginResult.getResponse().getContentAsString());
+            String refreshToken = loginNode.get("refreshToken").asText();
+
+            mockMvc.perform(post("/api/auth/refresh")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"refreshToken\": \"" + refreshToken + "\"}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.token").isNotEmpty())
+                    .andExpect(jsonPath("$.refreshToken").isNotEmpty());
+        }
+
+        @Test
+        @DisplayName("POST /api/auth/refresh — refresh token invalide → 401")
+        void refresh_invalidToken() throws Exception {
+            mockMvc.perform(post("/api/auth/refresh")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"refreshToken\": \"invalid.token.here\"}"))
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
