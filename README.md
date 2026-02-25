@@ -1,28 +1,77 @@
-## TP1 – Version remasterisée et améliorée
+# TP AIR #1 — MasterAnnonce (version remasterisée)
 
-Ce projet est une version remasterisée et améliorée du TP1.
-Il reprend toutes les fonctionnalités demandées dans le sujet original, avec :
+## Contexte pédagogique
 
-une meilleure structuration du code (MVC, DAO)
+Ce projet correspond au **TP AIR #1** : *Introduction au développement d'applications Web en Java EE*.
 
-des validations côté serveur plus complètes
+**Prérequis** : HTML, CSS, Java/JEE, bases de données et SQL.
 
-un CRUD fonctionnel (Create, Read, Update, Delete)
+**Notions abordées** :
+- Serveur d'application **Tomcat**
+- Serveur de base de données **PostgreSQL**
+- **Servlets** et **JSP** pour une application web
+- **JDBC** pour l'accès aux données
+- **Maven** pour le build et le packaging
 
-une base de données PostgreSQL utilisée via JDBC sur Docker
+Cette version est une **remasterisation** du TP1 : même cahier des charges, avec une meilleure structuration du code (MVC, DAO), des validations côté serveur plus complètes et un CRUD entièrement fonctionnel.
 
-⚠️ Attention : pour que l’application fonctionne correctement, une base de données doit être créée manuellement et les paramètres de connexion doivent être adaptés.
+---
 
-🗄️ Configuration de la base de données
-1️⃣ Créer la base de données
+## Ce que fait l'application
 
-CREATE DATABASE Nom-BD;
+**MasterAnnonce** est une application web de gestion d'annonces. Elle permet de :
 
-2️⃣ Se connecter à la base
-3️⃣ Créer la table annonce
+1. **Afficher un message d'accueil** — Hello World (Servlet + JSP)
+2. **Saisir un nom** — formulaire avec passage de paramètre (Hello + nom)
+3. **Créer une annonce** — formulaire (title, description, adress, mail) → enregistrement en base
+4. **Lister les annonces** — affichage de toutes les annonces en base
+5. **Modifier une annonce** — formulaire pré-rempli, mise à jour en base (paramètre `id` dans l'URL)
+6. **Supprimer une annonce** — suppression en base (paramètre `id` dans l'URL)
 
-La table doit respecter strictement la structure suivante :
+L'application repose sur une **architecture en couches** :
+- **Vue** : JSP (`AnnonceAdd.jsp`, `AnnonceList.jsp`, `AnnonceUpdate.jsp`, `hello-form.jsp`, `index.jsp`)
+- **Contrôleur** : Servlets (`AnnonceAdd`, `AnnonceList`, `AnnonceUpdate`, `AnnonceDelete`, `HelloServlet`)
+- **Modèle / accès données** : classe `Annonce`, **DAO** abstrait (`DAO.java`) et implémentation (`AnnonceDAO.java`), connexion JDBC via `ConnectionDB.java`
 
+Les Servlets gèrent le flux (doGet = affichage formulaire, doPost = traitement + redirection), valident les champs (tous obligatoires) et délèguent la persistance au DAO. La base de données utilisée est **PostgreSQL** (connexion JDBC, pas JPA).
+
+---
+
+## Stack technique
+
+| Composant   | Technologie        |
+|------------|--------------------|
+| Build      | Maven              |
+| Serveur    | Tomcat             |
+| Vue        | JSP + JSTL         |
+| Contrôleur | Jakarta Servlet    |
+| Base       | PostgreSQL (JDBC)  |
+| Packaging  | WAR                |
+
+---
+
+## Prérequis
+
+- **Java 11+**
+- **Maven**
+- **PostgreSQL** (local ou Docker)
+- **Tomcat** (pour exécution du WAR)
+
+---
+
+## Configuration de la base de données
+
+### 1. Créer la base
+
+```sql
+CREATE DATABASE MasterAnnonce;
+```
+
+### 2. Créer la table `annonce`
+
+La table doit respecter la structure suivante :
+
+```sql
 CREATE TABLE annonce (
     id SERIAL PRIMARY KEY,
     title VARCHAR(64),
@@ -31,21 +80,54 @@ CREATE TABLE annonce (
     mail VARCHAR(64),
     date TIMESTAMP
 );
+```
 
-⚙️ Configuration de la connexion JDBC
+### 3. Configurer la connexion JDBC
 
-Dans le projet, la connexion à la base se fait via la classe :
+La connexion est gérée par la classe **`ConnectionDB.java`** (singleton). Adaptez les constantes selon votre environnement :
 
-ConnectionDB.java
+| Constante | À remplacer par |
+|-----------|------------------|
+| `URL`     | `jdbc:postgresql://localhost:5432/MasterAnnonce` (adresse, port, nom de base) |
+| `USER`    | Votre utilisateur PostgreSQL |
+| `PASSWD`  | Votre mot de passe PostgreSQL |
 
-Vous devez adapter les constantes suivantes selon votre environnement :
+Fichier concerné : `src/main/java/.../db/ConnectionDB.java`
 
-private static final String URL = "jdbc:postgresql://localhost:5432/MasterAnnonce";
-private static final String USER = "VOTRE_USER";
-private static final String PASSWD = "VOTRE_MOT_DE_PASSE";
+---
 
-🔁 À remplacer par :
+## Lancer le projet
 
-URL → l’adresse de votre base PostgreSQL (port, nom de base)
-USER → votre utilisateur PostgreSQL
-PASSWD → votre mot de passe PostgreSQL
+1. **Compiler et packager** :
+   ```bash
+   mvn clean package
+   ```
+
+2. **Déployer le WAR** sur Tomcat : le fichier généré est `target/tp_avancee.war`. Déployez-le dans le répertoire `webapps` de Tomcat ou via l’interface d’administration.
+
+3. **Accéder à l’application** : après démarrage de Tomcat, l’URL dépend du contexte (ex. `http://localhost:8080/tp_avancee/`).
+
+---
+
+## Structure du projet (résumé)
+
+```
+src/main/java/.../
+  Servlet/          → AnnonceAdd, AnnonceList, AnnonceUpdate, AnnonceDelete, HelloServlet
+  dao/               → DAO.java (abstract), AnnonceDAO.java
+  db/                → ConnectionDB.java
+  model/             → Annonce.java
+
+src/main/webapp/
+  AnnonceAdd.jsp     → Formulaire de création d’annonce
+  AnnonceList.jsp    → Liste des annonces
+  AnnonceUpdate.jsp  → Formulaire de mise à jour
+  hello-form.jsp     → Formulaire « Hello » + nom
+  index.jsp          → Page d’accueil
+```
+
+---
+
+## Attention
+
+Pour que l’application fonctionne correctement, la base **MasterAnnonce** doit exister, la table **annonce** doit être créée et les paramètres dans **ConnectionDB.java** doivent correspondre à votre installation PostgreSQL (URL, user, mot de passe).
