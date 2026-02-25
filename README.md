@@ -1,3 +1,19 @@
+
+
+### Ceci est un merge vers la branche main pour faire fonctionner le build + docker ! Le vrai TP4 se trouve sur sa branche TP4.
+
+
+
+
+
+
+
+
+
+
+
+
+
 TP Développement Avancé #4 — Migration de l'application MasterAnnonce (JAX-RS / JAAS) vers **Spring Boot 3.5.5**.
 
 ---
