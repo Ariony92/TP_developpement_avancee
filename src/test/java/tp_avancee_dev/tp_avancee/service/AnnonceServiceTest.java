@@ -311,7 +311,7 @@ class AnnonceServiceTest {
             when(annonceRepository.findWithRelationsById(1L)).thenReturn(Optional.of(annonce));
 
             assertThrows(BusinessConflictException.class, () -> annonceService.delete(1L));
-            verify(annonceRepository, never()).delete(any());
+            verify(annonceRepository, never()).delete(any(Annonce.class));
         }
 
         @Test
