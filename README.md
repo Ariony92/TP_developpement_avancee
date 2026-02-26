@@ -1,6 +1,6 @@
 
 
-# Ceci est un merge vers la branche main pour faire fonctionner le CI + docker ! Le vrai TP4 se trouve sur sa branche TP4.
+# Ceci est un merge du TP4 vers la branche main pour faire fonctionner le CI + docker ! Le vrai TP4 se trouve sur sa branche TP4.
 
 
 
